@@ -4,7 +4,7 @@
   <title><![CDATA[wtf AI ?]]></title>
   <link href="http://yinxusen.github.io/atom.xml" rel="self"/>
   <link href="http://yinxusen.github.io/"/>
-  <updated>2014-03-11T17:00:02+08:00</updated>
+  <updated>2014-03-12T14:52:20+08:00</updated>
   <id>http://yinxusen.github.io/</id>
   <author>
     <name><![CDATA[Xusen]]></name>
@@ -36,6 +36,14 @@
 <li><p>LineRecorder中的readline函数如何实现越过block向后看？</p></li>
 </ul>
 
+
+<p><strong>Background</strong></p>
+
+<p>2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the core of LDA &ndash; the Gibbs sampling, I find that there are some trivial matters in the way of creating a usable LDA. Mostly, they are the pre-processing of text files. For the word segmentation, both Chinese and English, I wrap Lucene with a piece of scala code to support that. But the input format traps me lots of time.</p>
+
+<p>The standard input format of Spark is from the interface called <code>textFiles(path, miniSplit)</code> in the <code>SparkContext</code> class. But it is a line processor, which digest one line each time. But what I want is a KV processor, i.e. I need an interface which can return me a KV pair (fileName, content) given a directory path. So I try to write my own <code>InputFormat</code>.</p>
+
+<p>Firstly, I try to use the <code>lineReader</code> and handle the fragments of blocks myself, later I find that it&rsquo;s both ugly and unnecessary. So I use a more low level interface named <code>FSDataInputStream</code> to read an entire block once time. However, there are still some details need to be improved. Here, let&rsquo;s begin our explore.</p>
 
 <p><strong>LDA best practice:</strong></p>
 
