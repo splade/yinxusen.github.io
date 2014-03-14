@@ -167,6 +167,164 @@
 
 <h3>Double linked lists</h3>
 
+<h3>How about read?</h3>
+
+<p>After the discussion above, we know how MapReduce program keep locaility when composing <code>Split</code> with blocks. We are very happy with the sorted <code>perferedLocation</code>, and send it back to partitions on Spark. The next step is Spark framework launchs executors on workers according to the <code>perferedLocation</code>, say, h4 WRT the example above. The launched executor on h4 read these blocks in the split now. But, how does h4 know which nodes to fetch each block? Remeber that each block has 3 replicas!</p>
+
+<p>Begining from <code>RecordReader</code> we can reveal the process of reading. Let&rsquo;s take our <code>BatchFileRecordReader</code> as an example.</p>
+
+<figure class='code'><figcaption><span>Constructer of BatchFileRecoderReader - BatchFileRecorderReader.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="kd">public</span> <span class="nf">BatchFileRecordReader</span><span class="o">(</span>
+</span><span class='line'>            <span class="n">CombineFileSplit</span> <span class="n">split</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">Configuration</span> <span class="n">conf</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">Reporter</span> <span class="n">reporter</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">Integer</span> <span class="n">index</span><span class="o">)</span>
+</span><span class='line'>            <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">path</span> <span class="o">=</span> <span class="n">split</span><span class="o">.</span><span class="na">getPath</span><span class="o">(</span><span class="n">index</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">startOffset</span> <span class="o">=</span> <span class="n">split</span><span class="o">.</span><span class="na">getOffset</span><span class="o">(</span><span class="n">index</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">pos</span> <span class="o">=</span> <span class="n">startOffset</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">end</span> <span class="o">=</span> <span class="n">startOffset</span> <span class="o">+</span> <span class="n">split</span><span class="o">.</span><span class="na">getLength</span><span class="o">(</span><span class="n">index</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">FileSystem</span> <span class="n">fs</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="na">getFileSystem</span><span class="o">(</span><span class="n">conf</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">fileIn</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">path</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">fileIn</span><span class="o">.</span><span class="na">seek</span><span class="o">(</span><span class="n">startOffset</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">totalMemory</span> <span class="o">=</span> <span class="n">Runtime</span><span class="o">.</span><span class="na">getRuntime</span><span class="o">().</span><span class="na">totalMemory</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In the code above, we get <code>path</code> from <code>split</code>, which represents the current file path (Note! It is not the block path.). Then we can get a <code>fileIn</code> which is actually a <code>FSDataInputStream</code>. We then <code>seek</code> it to the <code>startOffset</code> of our block. Wait for a second, we do not use <code>perferedLocation</code> in <code>split</code> at all! It is strange, we took lots of efforts just now, but it is not used here.</p>
+
+<p>We should remember here that the <code>split</code> is just used for providing a computing place for these set of blocks. Only so much. Reading is controlled by other code. Let&rsquo;s go into the <code>FSDataInputStream</code>. However, there is really nothing, just some useless-like code as below:</p>
+
+<figure class='code'><figcaption><span>FSDataInputStream.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">FSDataInputStream</span> <span class="kd">extends</span> <span class="n">DataInputStream</span>
+</span><span class='line'>    <span class="kd">implements</span> <span class="n">Seekable</span><span class="o">,</span> <span class="n">PositionedReadable</span><span class="o">,</span> <span class="n">Closeable</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="nf">FSDataInputStream</span><span class="o">(</span><span class="n">InputStream</span> <span class="n">in</span><span class="o">)</span>
+</span><span class='line'>        <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="kd">super</span><span class="o">(</span><span class="n">in</span><span class="o">);</span>
+</span><span class='line'>        <span class="k">if</span><span class="o">(</span> <span class="o">!(</span><span class="n">in</span> <span class="k">instanceof</span> <span class="n">Seekable</span><span class="o">)</span> <span class="o">||</span> <span class="o">!(</span><span class="n">in</span> <span class="k">instanceof</span> <span class="n">PositionedReadable</span><span class="o">)</span> <span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nf">IllegalArgumentException</span><span class="o">(</span>
+</span><span class='line'>            <span class="s">&quot;In is not an instance of Seekable or PositionedReadable&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">synchronized</span> <span class="kt">void</span> <span class="nf">seek</span><span class="o">(</span><span class="kt">long</span> <span class="n">desired</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="o">((</span><span class="n">Seekable</span><span class="o">)</span><span class="n">in</span><span class="o">).</span><span class="na">seek</span><span class="o">(</span><span class="n">desired</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>OK, let&rsquo;s force from another way. Note that <code>fileIn</code> is return by calling <code>fs.open()</code>. <code>fs</code> here is usually <code>DistributedFileSystem</code>. Then we find that <code>DistributedFileSystem</code> just wraps a <code>DFSInputStream</code> to <code>FSDataInputStream</code>. The former is implemented in <code>DFSClient</code>. Our expected function in <code>DFSInputStream</code> is <code>blockSeekTo()</code>, which is in charge of finding an appropriate block given offset. Then it will find the best DataNode, and read data from it.</p>
+
+<figure class='code'><figcaption><span>Find an appropriate block and select a DataNode  - DFSClient.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="n">DatanodeInfo</span> <span class="n">chosenNode</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">refetchToken</span> <span class="o">=</span> <span class="mi">1</span><span class="o">;</span> <span class="c1">// only need to get a new access token once</span>
+</span><span class='line'>    <span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">//</span>
+</span><span class='line'>        <span class="c1">// Compute desired block</span>
+</span><span class='line'>        <span class="c1">//</span>
+</span><span class='line'>        <span class="n">LocatedBlock</span> <span class="n">targetBlock</span> <span class="o">=</span> <span class="n">getBlockAt</span><span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'>        <span class="k">assert</span> <span class="o">(</span><span class="n">target</span><span class="o">==</span><span class="k">this</span><span class="o">.</span><span class="na">pos</span><span class="o">)</span> <span class="o">:</span> <span class="s">&quot;Wrong postion &quot;</span> <span class="o">+</span> <span class="n">pos</span> <span class="o">+</span> <span class="s">&quot; expect &quot;</span> <span class="o">+</span> <span class="n">target</span><span class="o">;</span>
+</span><span class='line'>        <span class="kt">long</span> <span class="n">offsetIntoBlock</span> <span class="o">=</span> <span class="n">target</span> <span class="o">-</span> <span class="n">targetBlock</span><span class="o">.</span><span class="na">getStartOffset</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">DNAddrPair</span> <span class="n">retval</span> <span class="o">=</span> <span class="n">chooseDataNode</span><span class="o">(</span><span class="n">targetBlock</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">chosenNode</span> <span class="o">=</span> <span class="n">retval</span><span class="o">.</span><span class="na">info</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">InetSocketAddress</span> <span class="n">targetAddr</span> <span class="o">=</span> <span class="n">retval</span><span class="o">.</span><span class="na">addr</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">...</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The most important function here is <code>chooseDataNode()</code>. It is very simple, just select the first DataNode in its DataNode list. If the first one is unreachable, it will try to connect to the second one, and so on. The comments in <code>bestNode()</code> function mentioned that DataNode list has already sorted in the priority order. It is strange that when it is sorted?</p>
+
+<p>Indeed, the block priority order is set when the file is open. See <code>openInfo()</code>, it calls <code>callGetBlockLocations()</code> to set the order. The latter query information from <code>NameNode</code>, in <code>getBlockLocations()</code>:</p>
+
+<figure class='code'><figcaption><span>Get block locations and sorted in the priority order  - FSNamesystem.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="n">LocatedBlocks</span> <span class="nf">getBlockLocations</span><span class="o">(</span><span class="n">String</span> <span class="n">clientMachine</span><span class="o">,</span> <span class="n">String</span> <span class="n">src</span><span class="o">,</span>
+</span><span class='line'>        <span class="kt">long</span> <span class="n">offset</span><span class="o">,</span> <span class="kt">long</span> <span class="n">length</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">LocatedBlocks</span> <span class="n">blocks</span> <span class="o">=</span> <span class="n">getBlockLocations</span><span class="o">(</span><span class="n">src</span><span class="o">,</span> <span class="n">offset</span><span class="o">,</span> <span class="n">length</span><span class="o">,</span> <span class="kc">true</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">blocks</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="c1">//sort the blocks</span>
+</span><span class='line'>            <span class="n">DatanodeDescriptor</span> <span class="n">client</span> <span class="o">=</span> <span class="n">host2DataNodeMap</span><span class="o">.</span><span class="na">getDatanodeByHost</span><span class="o">(</span>
+</span><span class='line'>                <span class="n">clientMachine</span><span class="o">);</span>
+</span><span class='line'>            <span class="k">for</span> <span class="o">(</span><span class="n">LocatedBlock</span> <span class="n">b</span> <span class="o">:</span> <span class="n">blocks</span><span class="o">.</span><span class="na">getLocatedBlocks</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>                <span class="n">clusterMap</span><span class="o">.</span><span class="na">pseudoSortByDistance</span><span class="o">(</span><span class="n">client</span><span class="o">,</span> <span class="n">b</span><span class="o">.</span><span class="na">getLocations</span><span class="o">());</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">blocks</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can see that it calls <code>pseudoSortByDistance()</code> of <code>clusterMap</code> to sort according to the distance. Untill now, we get the full picture of how HDFS keep locaility for applications.</p>
+
 <p><strong>New Design and Implementation</strong></p>
 
 <p>key ideas:</p>
