@@ -9,10 +9,7 @@
   <meta name="author" content="Xusen">
 
   
-  <meta name="description" content="key ideas: 癫狂小文件：由small files input探索HDFS：功用、功效、策略
-Spark的处理方式：partition自己定制，把O(n2)的shuffle变成O(n)的？
-Hbase作为替代
-Hdfs combine file与multi file对比， &hellip;">
+  <meta name="description" content="Background 2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -95,26 +92,7 @@ Hdfs combine file与multi file对比， &hellip;">
   </header>
 
 
-<div class="entry-content"><p>key ideas:</p>
-
-<ul>
-<li><p>癫狂小文件：由small files input探索HDFS：功用、功效、策略</p></li>
-<li><p>Spark的处理方式：partition自己定制，把O(n<sup>2</sup>)的shuffle变成O(n)的？</p></li>
-<li><p>Hbase作为替代</p></li>
-<li><p>Hdfs combine file与multi file对比，后者为什么倍deprecated</p></li>
-<li><p>Shuffle为什么存在，如何避免，是在底层（HDFS）还是在上层（Spark应用）？</p></li>
-<li><p>偶尔要为replication容错付出更多代价</p></li>
-<li><p>Combine file input format，blog上错误多影响广，以及不友好的API，糟糕的示例和注释。</p></li>
-<li><p>实际场景？学术研究VS线上应用。什么才是LDA输入的最佳实践？Mahout的处理方式？</p></li>
-<li><p>文件系统的设计思考，可引入我自己的文件系统。</p></li>
-<li><p>代码的简洁如何保证？同时如何保证性能？隐藏在简洁代码中的黑魔法。</p></li>
-<li><p>Partition，split，以及种种locaility preserve的思考（为什么程序性能这么差？1024个partition从何而来？）</p></li>
-<li><p>Google在bigtable和GFS的思考</p></li>
-<li><p>LineRecorder中的readline函数如何实现越过block向后看？</p></li>
-</ul>
-
-
-<p><strong>Background</strong></p>
+<div class="entry-content"><h2>Background</h2>
 
 <p>2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the core of LDA &ndash; the Gibbs sampling, I find that there are some trivial matters in the way of creating a usable LDA. Mostly, they are the pre-processing of text files. For the word segmentation, both Chinese and English, I wrap Lucene with a piece of scala code to support that. But the input format traps me lots of time.</p>
 
@@ -122,13 +100,16 @@ Hdfs combine file与multi file对比， &hellip;">
 
 <p>Firstly, I try to use the <code>lineReader</code> and handle the fragments of blocks myself, later I find that it&rsquo;s both ugly and unnecessary. So I use a more low level interface named <code>FSDataInputStream</code> to read an entire block once time. However, there are still some details need to be improved. Here, let&rsquo;s begin our explore.</p>
 
-<p><strong>LDA best practice:</strong></p>
+<!--more-->
+
+
+<h2>LDA best practice:</h2>
 
 <p>I think there are two common ways to use LDA in practice. First is the use in experimental condition, say, you have a bunch of small files on your disk. Then you want to upload them into HDFS, and call LDA in Spark. This is a usual way if you just want to do some experiments with LDA. In other words, it is an off-line training process. The second way of using LDA is an industrial use. You may have a streaming pipe, which will transport new feeds in Twitter or some other websites into your system. You will choose to put those feeds into a distributed storage such as HDFS or HBase, or you just send the streaming into a process.</p>
 
 <p>Think them boldly, they are totally different. With respect to the usage of LDA, we should take care of the two scenarios simultaneously. Both of them are useful so we should not give up each of them.</p>
 
-<p><strong>Offline scenario of LDA</strong></p>
+<h2>Offline scenario of LDA</h2>
 
 <p>In the offline scenario, you may not charge of the pre-processing, instead you just leave it to the end-user. Users will change the raw texts into the format you want, and upload them into HDFS so your LDA application can read them directly. In this way, what we need to do is just specify the input format. What a relief !</p>
 
@@ -148,15 +129,15 @@ Hdfs combine file与multi file对比， &hellip;">
 
 <p>There must be some trade-offs here. We should solve the shuffle in HDFS level, or we need solve the shuffle in Spark level. If sizes of all files are smaller than the block size, there is nothing hard to solve. But we cannot assume things like that.</p>
 
-<p><strong>Online scenario of LDA</strong></p>
+<h2>Online scenario of LDA</h2>
 
 <p>Now let&rsquo;s turn into another direction. Note that a online product will never take the way described above. You know, people comes from data process division would not be silly to save all raw texts in local disks, then upload it to servers when processing. Massive data, in my opinion, should be stay in an appropriate place. In this scenario, raw texts or web page should be stored in a KV store, such as HBase. Small texts or articles should be treated same with pictures from websites. So, in reality, HBase will be used. However, Spark has no external storage except HDFS and local disk. So I think it is the time to add new storage.</p>
 
-<p><strong>In case of using a our own customized partitioner</strong></p>
+<h2>In case of using a our own customized partitioner</h2>
 
 <p>Ah&hellip; It&rsquo;s awful! You know what, one of the reasons than Spark beats its counterparts is customized partitioners. It is the first time that you can arrange your items according to your wishes such easily. One idea to settle our problem is using a customized partitioner to rearrange our KV pairs. However, new partitioner is useful only when we do join of two RDDs iteratively, such as <code>PageRank</code>. But if we only need to shuffle things once time, it will be helplessness, for you cannot avoid the first-time shuffle.</p>
 
-<p><strong>Where the shuffle from? How to do trade-off?</strong></p>
+<h2>Where the shuffle from? How to do trade-off?</h2>
 
 <p>We talked about needless shuffle just now. So question is, where is the shuffle from, and how to do trade-off? First, huge-files (or small files with smaller block size) could be cut off due to the fixed block size, so we want blocks belong to a single file could stay in the same split (partition, in dialect of Spark), then we can combine them together to recover the single file without any shuffle. The process is essential, because there will be multi-bytes characters such as UTF could be split.</p>
 
@@ -164,9 +145,48 @@ Hdfs combine file与multi file对比， &hellip;">
 
 <p>So there are the trade-offs between &ldquo;shuffle HDFS level&rdquo; with &ldquo;shuffle Spark level&rdquo;, and between &ldquo;efficiency when reading blocks&rdquo; with &ldquo;efficiency due to shuffle-free&rdquo;, and eventually between &ldquo;efficiency&rdquo; with &ldquo;security&rdquo;.</p>
 
-<p><strong>Rethink the design of file system, efficiency and robustness</strong></p>
+<h2>Take a deep breath &ndash; Full disclosure of locaility in Hadoop</h2>
 
-<p><strong>Rethink the compact code and black magic behind it</strong></p>
+<p>To get into the secret of locaility of Hadoop IO, I have to look deep into <code>InputFormat</code> code in <code>mapred</code>. Due to the use of Spark, I choose <code>FileInputFormat</code> as the breach. First you should keep these concepts in mind, which will be used commonly later. They are <em>rack</em>, <em>node</em>, <em>file</em>, <em>block</em>, <em>replica</em>. A rack is composed of several nodes, nodes are machines composing HDFS in Hadoop. A file is composed of several blocks. A block could have several replicas, usually 3 copies. Note that your Hadoop workers could cover all HDFS nodes, but there could also mismatch between Hadoop workers and HDFS nodes. Note also that replicas of a block are usually span different racks, due to the consideration of robustness.</p>
+
+<p>Things could be a little bit more complicated, if we add the workers of Hadoop in. Program could span across different workers, data could span across different nodes. So, question is, how to arrange the mapping of programs in each worker and blocks in each node, to get the best locaility, i.e. the less network communication when reading files on HDFS?</p>
+
+<p>This is not easy, since there are many layers between program with block. Program is aware of file directly. File divided into several blocks. Block could be located in each nodes, and its replicas could be located in any other nodes. Different nodes could in different racks. Let&rsquo;s begin from our program. Take Spark as an example, you may call <code>hadoopRDD = sc.textFile(path)</code> to tell Spark read a file in. The path could be a local disk path, or more commonly, a HDFS path. <code>hadoopRDD</code> is usually partitioned for distributed computing. So, where is the partition information from? The answer is <code>Split</code> in HDFS. <code>Split</code>, or more specifically, <code>FileSplit</code>, which is used in <code>FileInputFormat</code>. <code>FileSplit</code> is an approach to arrange the mapping of <strong>blocks and programs</strong>.</p>
+
+<p>Each <code>FileSplit</code> is a block set, in which blocks will be computed in the same worker, i.e. they are partitioned together. To preserve the locaility, <code>FileSplit</code> takes lots of efforts to place appropriate blocks together. Such as contribution computing, and node &lt;&ndash;> block, rack &lt;&ndash;> block double linked lists, etc. Note that shuffle in Spark is only related to the <code>Split</code>, because <code>Split</code> serves as a layer to shield the details in HDFS, which means that, if and only if we put blocks of an entire file into the same <code>Split</code>, our Spark is then &ldquo;shuffle-free&rdquo;. But we cannot arrange different small files into a split in an random order, because different small files could be in everywhere on the HDFS cluster. If we put two files which are far apart in the same <code>Split</code>, bad performance will occur. Here we degenerate the program &ndash; block mapping to <strong>split &ndash; block</strong> mapping.</p>
+
+<h3>contribution computing</h3>
+
+<p>We should remind us that there is little chance to put blocks in the same node in the same <code>Split</code>, because we cannot directly access blocks, instead we just specify the file path. Suppose that we have a <code>Split</code>, in which there are 3 blocks, and come from 8 nodes. 8 nodes belong to 4 racks. Moreover, each block has 3 replicas in total. Let&rsquo;s assume that the lengths of 3 blocks are 100, 150, 75, respectively. How to arrange the <code>perferedLocation</code> in this scenario? Namely, on which workers should the <code>Split</code> be processed?</p>
+
+<p><img src="/images/2014/03/pic-1.png" alt="pic-1" /></p>
+
+<p>First of all, we all agree that the <code>preferedLocation</code> should be a subset of all nodes of our block. In our example, it would be a subset of [h1 &hellip; h8]. The second is, how to sort the subset, so as to make &ldquo;the best&rdquo; node at first, then &ldquo;the second-best&rdquo; one, &hellip;</p>
+
+<p>There are two different ways to arrange the <code>preferedLocation</code>&ndash; the rack-aware way and the rack-free way.</p>
+
+<h3>Double linked lists</h3>
+
+<p><strong>New Design and Implementation</strong></p>
+
+<p>key ideas:</p>
+
+<ul>
+<li><p>癫狂小文件：由small files input探索HDFS：功用、功效、策略</p></li>
+<li><p>Spark的处理方式：partition自己定制，把O(n<sup>2</sup>)的shuffle变成O(n)的？</p></li>
+<li><p>Hbase作为替代</p></li>
+<li><p>Hdfs combine file与multi file对比，后者为什么倍deprecated</p></li>
+<li><p>Shuffle为什么存在，如何避免，是在底层（HDFS）还是在上层（Spark应用）？</p></li>
+<li><p>偶尔要为replication容错付出更多代价</p></li>
+<li><p>Combine file input format，blog上错误多影响广，以及不友好的API，糟糕的示例和注释。</p></li>
+<li><p>实际场景？学术研究VS线上应用。什么才是LDA输入的最佳实践？Mahout的处理方式？</p></li>
+<li><p>文件系统的设计思考，可引入我自己的文件系统。</p></li>
+<li><p>代码的简洁如何保证？同时如何保证性能？隐藏在简洁代码中的黑魔法。</p></li>
+<li><p>Partition，split，以及种种locaility preserve的思考（为什么程序性能这么差？1024个partition从何而来？）</p></li>
+<li><p>Google在bigtable和GFS的思考</p></li>
+<li><p>LineRecorder中的readline函数如何实现越过block向后看？</p></li>
+</ul>
+
 </div>
 
 

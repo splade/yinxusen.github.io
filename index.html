@@ -9,10 +9,7 @@
   <meta name="author" content="Xusen">
 
   
-  <meta name="description" content="key ideas: 癫狂小文件：由small files input探索HDFS：功用、功效、策略
-Spark的处理方式：partition自己定制，把O(n2)的shuffle变成O(n)的？
-Hbase作为替代
-Hdfs combine file与multi file对比， &hellip;">
+  <meta name="description" content="Background 2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -98,26 +95,7 @@ Hdfs combine file与multi file对比， &hellip;">
   </header>
 
 
-  <div class="entry-content"><p>key ideas:</p>
-
-<ul>
-<li><p>癫狂小文件：由small files input探索HDFS：功用、功效、策略</p></li>
-<li><p>Spark的处理方式：partition自己定制，把O(n<sup>2</sup>)的shuffle变成O(n)的？</p></li>
-<li><p>Hbase作为替代</p></li>
-<li><p>Hdfs combine file与multi file对比，后者为什么倍deprecated</p></li>
-<li><p>Shuffle为什么存在，如何避免，是在底层（HDFS）还是在上层（Spark应用）？</p></li>
-<li><p>偶尔要为replication容错付出更多代价</p></li>
-<li><p>Combine file input format，blog上错误多影响广，以及不友好的API，糟糕的示例和注释。</p></li>
-<li><p>实际场景？学术研究VS线上应用。什么才是LDA输入的最佳实践？Mahout的处理方式？</p></li>
-<li><p>文件系统的设计思考，可引入我自己的文件系统。</p></li>
-<li><p>代码的简洁如何保证？同时如何保证性能？隐藏在简洁代码中的黑魔法。</p></li>
-<li><p>Partition，split，以及种种locaility preserve的思考（为什么程序性能这么差？1024个partition从何而来？）</p></li>
-<li><p>Google在bigtable和GFS的思考</p></li>
-<li><p>LineRecorder中的readline函数如何实现越过block向后看？</p></li>
-</ul>
-
-
-<p><strong>Background</strong></p>
+  <div class="entry-content"><h2>Background</h2>
 
 <p>2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the core of LDA &ndash; the Gibbs sampling, I find that there are some trivial matters in the way of creating a usable LDA. Mostly, they are the pre-processing of text files. For the word segmentation, both Chinese and English, I wrap Lucene with a piece of scala code to support that. But the input format traps me lots of time.</p>
 
@@ -125,53 +103,12 @@ Hdfs combine file与multi file对比， &hellip;">
 
 <p>Firstly, I try to use the <code>lineReader</code> and handle the fragments of blocks myself, later I find that it&rsquo;s both ugly and unnecessary. So I use a more low level interface named <code>FSDataInputStream</code> to read an entire block once time. However, there are still some details need to be improved. Here, let&rsquo;s begin our explore.</p>
 
-<p><strong>LDA best practice:</strong></p>
-
-<p>I think there are two common ways to use LDA in practice. First is the use in experimental condition, say, you have a bunch of small files on your disk. Then you want to upload them into HDFS, and call LDA in Spark. This is a usual way if you just want to do some experiments with LDA. In other words, it is an off-line training process. The second way of using LDA is an industrial use. You may have a streaming pipe, which will transport new feeds in Twitter or some other websites into your system. You will choose to put those feeds into a distributed storage such as HDFS or HBase, or you just send the streaming into a process.</p>
-
-<p>Think them boldly, they are totally different. With respect to the usage of LDA, we should take care of the two scenarios simultaneously. Both of them are useful so we should not give up each of them.</p>
-
-<p><strong>Offline scenario of LDA</strong></p>
-
-<p>In the offline scenario, you may not charge of the pre-processing, instead you just leave it to the end-user. Users will change the raw texts into the format you want, and upload them into HDFS so your LDA application can read them directly. In this way, what we need to do is just specify the input format. What a relief !</p>
-
-<p>Maybe you can help end-users one step more. You write a program, single or parallel, whatever, to help the pre-process for end-user. Just like what Mahout does. End-user should write a ugly shell program as coordinator, to control the overall workflow. In this way, you can write a program to change the small files (raw texts) into a huge file which lines represents texts, with filenames in the front of the line plus a separator.</p>
-
-<p>But, I think a better way is melding the pre-process with LDA. What the end-user does is just upload his raw texts on HDFS. In this way, we must provide the function to read all texts and their corresponding filenames in. Then we implement a <code>CombineFileInputFormat</code>, a <code>CombineFileRecordReader</code>, a <code>FileLineWritable</code> and an interface looks like <code>textFiles</code> to support the scenario.</p>
-
-<p>I am not mean that it&rsquo;s a best practice. Indeed, it is very bad to put lots of small files on HDFS, for it will occupy so many index entries than bad performance will occur. I just talk about one feasible way. However, there are some tangle problems we must solve.</p>
-
-<p>First of all is the block size of your HDFS. Although we mean &ldquo;small files&rdquo;, but how small it is? Will its size larger than a single block in HDFS? The answer is Yes, it is possible. So we must handle the joint of blocks for each file, especially when the file is a multi-byte one, say, UTF encoded. Characters on the edge of blocks will be separated into two parts. We must take the responsibility to merge them together seamlessly.</p>
-
-<p>The key point is, we do not like shuffle, especially the unnecessary one. We hope that blocks of each file could be stay in the same node, so that we can merge them together without shuffle. As with the <a href="http://www.idryman.org/blog/2013/09/22/process-small-files-on-hadoop-using-combinefileinputformat-1/">blog</a> says, if we override the <code>isSplitable()</code> function and set the return value to false, then we can keep a single file in the same <code>split</code>. <code>HadoopRDD</code> treats a <code>split</code> as a single partition. If so, we just need to merge blocks of a single file in one partition without any shuffle. Very happy!</p>
-
-<p>However, we find that what the blog says is wrong. The <code>isSplitable()</code> is really useful, but just for <code>FileInputFormat</code>, which is the parent class of <code>CombineFileInputFormat</code>. The latter has a very complicated logic to, you know, divide blocks into splits. However, in order to improve the read performance, <code>CombineFileInputFormat</code> constructs a node list and a rack list, to chain blocks in the same node, or the same rack together, and send them into the same split. Remember that HDFS has replications. If there are 3 replications of a block, then <code>CombineFileInputFormat</code> could have the possibility to read any of the 3 replications, so we cannot ensure that the class will read any blocks from any nodes! It seems that a global shuffle is inevitable.</p>
-
-<p>Funny, we also find that there is a class named <code>MultiFileInputFormat</code>, which is the predecessor of <code>CombineFileInputFormat</code>. It is deprecated now, because of the low efficiency due to unawareness of data locality (per node / rack).</p>
-
-<p>There must be some trade-offs here. We should solve the shuffle in HDFS level, or we need solve the shuffle in Spark level. If sizes of all files are smaller than the block size, there is nothing hard to solve. But we cannot assume things like that.</p>
-
-<p><strong>Online scenario of LDA</strong></p>
-
-<p>Now let&rsquo;s turn into another direction. Note that a online product will never take the way described above. You know, people comes from data process division would not be silly to save all raw texts in local disks, then upload it to servers when processing. Massive data, in my opinion, should be stay in an appropriate place. In this scenario, raw texts or web page should be stored in a KV store, such as HBase. Small texts or articles should be treated same with pictures from websites. So, in reality, HBase will be used. However, Spark has no external storage except HDFS and local disk. So I think it is the time to add new storage.</p>
-
-<p><strong>In case of using a our own customized partitioner</strong></p>
-
-<p>Ah&hellip; It&rsquo;s awful! You know what, one of the reasons than Spark beats its counterparts is customized partitioners. It is the first time that you can arrange your items according to your wishes such easily. One idea to settle our problem is using a customized partitioner to rearrange our KV pairs. However, new partitioner is useful only when we do join of two RDDs iteratively, such as <code>PageRank</code>. But if we only need to shuffle things once time, it will be helplessness, for you cannot avoid the first-time shuffle.</p>
-
-<p><strong>Where the shuffle from? How to do trade-off?</strong></p>
-
-<p>We talked about needless shuffle just now. So question is, where is the shuffle from, and how to do trade-off? First, huge-files (or small files with smaller block size) could be cut off due to the fixed block size, so we want blocks belong to a single file could stay in the same split (partition, in dialect of Spark), then we can combine them together to recover the single file without any shuffle. The process is essential, because there will be multi-bytes characters such as UTF could be split.</p>
-
-<p>Second, <code>CombineFileInputFormat</code> cannot preserve the property for us, due to the consideration of efficiency (see <code>CombineFileInputFormat</code> and <code>MultiFileInputFormat</code> as an example). Mostly because of the replication in HDFS, the fault tolerance function in HDFS, blocks of a single file could be read at any nodes.</p>
-
-<p>So there are the trade-offs between &ldquo;shuffle HDFS level&rdquo; with &ldquo;shuffle Spark level&rdquo;, and between &ldquo;efficiency when reading blocks&rdquo; with &ldquo;efficiency due to shuffle-free&rdquo;, and eventually between &ldquo;efficiency&rdquo; with &ldquo;security&rdquo;.</p>
-
-<p><strong>Rethink the design of file system, efficiency and robustness</strong></p>
-
-<p><strong>Rethink the compact code and black magic behind it</strong></p>
 </div>
   
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/03/11/crazy-small-files-in-hdfs/">Read on &rarr;</a>
+    </footer>
   
 
 
@@ -245,175 +182,12 @@ Hdfs combine file与multi file对比， &hellip;">
 </ul>
 
 
-<h2>Introduction</h2>
-
-<p>In this PR, we propose a new implementation of <code>GradientDescent</code>, which follows a parallelism model we call BSP+, inspired by Jeff Dean&rsquo;s <a href="http://research.google.com/archive/large_deep_networks_nips2012.html">DistBelief</a> and Eric Xing&rsquo;s <a href="http://petuum.org/research.html">SSP</a>.  With a few modifications of <code>runMiniBatchSGD</code>, the BSP+ version can outperform the original sequential version by about 4x without sacrificing accuracy, and can be easily adopted by most classification and regression algorithms in MLlib.</p>
-
-<p>Parallelism of many ML algorithms are limited by the sequential updating process of optimization algorithms they use.  However, by carefully breaking the sequential chain, the updating process can be parallelized.  In the BSP+ version of <code>runMiniBatchSGD</code>, we split the iteration loop into multiple supersteps.  Within each superstep, an inner loop that runs a local optimization process is introduced into each partition.  During the local optimization, only local data points in the partition are involved.  Since different partitions are processed in parallel, the local optimization process is natually parallelized.  Then, at the end of each superstep, all the gradients and loss histories computed from each partition are collected and merged in a bulk synchronous manner.</p>
-
-<p>This modification is very localized, and hardly affects the topology of RDD DAGs of ML algorithms built above.  Take <code>LogisticRegressionWithSGD</code> as an example, here is the RDD DAG of a 3-iteration job with the original sequential <code>GradientDescent</code> implementation:</p>
-
-<p><img src="https://f.cloud.github.com/assets/2637239/1901663/dbd44be0-7c67-11e3-8c44-800a10f6d92a.jpg" title="Original version of `LogisticRegressionWithSGD`" alt="123" /></p>
-
-<p><strong>Figure 1. RDD DAG of the original LR (3-iteration)</strong></p>
-
-<p>And this is the RDD DAG of the one with BSP+ <code>GradientDescent</code>:</p>
-
-<p><img src="https://f.cloud.github.com/assets/2637239/1901664/e5fea980-7c67-11e3-9e24-5c9978d94d02.jpg" title="BSP+ version of `LogisticRegressionWithSGD`" alt="234" /></p>
-
-<p><strong>Figure 2. RDD DAG of the BSP+ LR (3-iteration)</strong></p>
-
-<h2>Experiments</h2>
-
-<p>To profile the accuracy and efficiency, we have run several experiments with both versions of <code>LogisticRegressionWithSGD</code>:</p>
-
-<ul>
-<li><p>Dataset: the unigram subset of the public <a href="http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html">web spam detection dataset</a></p>
-
-<ul>
-<li>Sample count: 350,000</li>
-<li>Feature count: 254</li>
-<li>File size: 382MB</li>
-</ul>
-</li>
-<li><p>Hardware:</p>
-
-<ul>
-<li>Nodes count: 15</li>
-<li>CPU core count: 120</li>
-</ul>
-</li>
-<li><p>Spark memory configuration:</p>
-
-<ul>
-<li><code>SPARK_MEM</code>: 8g</li>
-<li><code>SPARK_WORK_MEMORY</code>: 10g</li>
-</ul>
-</li>
-</ul>
-
-
-<p>Experiment results are presented below.</p>
-
-<h3>Rate of convergence</h3>
-
-<p><img src="https://f.cloud.github.com/assets/2637239/1909932/affb2118-7d09-11e3-8b59-abe2584d88cd.png" alt="08" /></p>
-
-<p><strong>Figure 3. Rate of convergence</strong></p>
-
-<p><img src="https://f.cloud.github.com/assets/2637239/1917187/9a808e16-7d8d-11e3-8e8e-0d279d7f5cbc.png" alt="graph3" /></p>
-
-<p><strong>Figure 3.1 Rate of convergence W.R.T. time elapsed</strong></p>
-
-<p>Experiment parameters:</p>
-
-<ul>
-<li><p>BSP+ version:</p>
-
-<ul>
-<li>Superstep count: 20</li>
-<li>Local optimization iteration count: 20</li>
-</ul>
-</li>
-<li><p>Original version:</p>
-
-<ul>
-<li>Iteration count: 20</li>
-</ul>
-</li>
-</ul>
-
-
-<p>Notice that in the case of BSP+, actually <code>20 * 20 = 400</code> iterations are computed, but the per-partition local optimization iterations are executed <em>in parallel</em>.  From figure 3 we can see that the BSP+ version converges at superstep 4 (80 iterations), and the result after superstep 3 is already better than the final result of the original LR. From figure 3.1 we can get a more clear insight of the speedup.</p>
-
-<p><img src="https://f.cloud.github.com/assets/2637239/1909937/d5dc6248-7d09-11e3-922f-89fcc4431ef0.png" alt="07" /></p>
-
-<p><strong>Figure 4. Iteration/superstep time</strong></p>
-
-<p>Next, let&rsquo;s see the time consumption.  Figure 4 shows that single superstep time of BSP+ LR is about 1.6 to 1.9 times of single iteration time of the original LR.  Since the final result of original LR doesn&rsquo;t catch up with superstep 3 of BSP+ LR, we may conclude that BSP+ is at least <code>(20 * 6 * 10^9 ns) / (3 * 1.2 * 10^10 ns) = 3.33</code> times faster than the original LR. Actually it has 4.3x performance gain in comparison with original LR, as depicted in figure 3.1. The main reason is that: the original version submits 1 job per iteration, while the BSP+ version submits 1 job per superstep, and per partition local optimization doesn&rsquo;t involve any job submission.</p>
-
-<h3>Correctness</h3>
-
-<p><img src="https://f.cloud.github.com/assets/2637239/1909941/f05122b2-7d09-11e3-84b4-10a81ac0b14a.png" alt="09" /></p>
-
-<p><strong>Figure 5. Loss history</strong></p>
-
-<p>Experiment parameters:</p>
-
-<ul>
-<li><p>BSP+ version:</p>
-
-<ul>
-<li>Superstep count: 20</li>
-<li>Local optimization iteration count: 20</li>
-</ul>
-</li>
-<li><p>Original version:</p>
-
-<ul>
-<li>Iteration count: 80</li>
-</ul>
-</li>
-</ul>
-
-
-<p>In this experiment, we compare the loss histories of both versions of LR.  We can see that BSP+ gives better answer much faster.</p>
-
-<h3>Relationship between parallelism and the rate of convergence</h3>
-
-<p><img src="https://f.cloud.github.com/assets/2637239/1909944/1379794c-7d0a-11e3-8a1f-7e3401422cf7.png" alt="10" /></p>
-
-<p><strong>Figure 6. Iteration/superstep time under different #partitions</strong></p>
-
-<p><img src="https://f.cloud.github.com/assets/2637239/1909945/2044fa70-7d0a-11e3-811d-359c20e2e0d6.png" alt="13" /></p>
-
-<p><strong>Figure 7. Job time under different #partitions</strong></p>
-
-<p>Experiment parameter:</p>
-
-<ul>
-<li><p>BSP+ version:</p>
-
-<ul>
-<li>Superstep count: 20</li>
-<li>Local optimization iteration count: 20</li>
-</ul>
-</li>
-<li><p>Original version:</p>
-
-<ul>
-<li>Iteration count: 20</li>
-</ul>
-</li>
-</ul>
-
-
-<p>In the case of BSP+, by adjusting minimal number of partitions (actual partition number is decided by the <code>HadoopRDD</code> class), we can explore the relationship between parallelism and the rate of convergence.  From figure 6 and figure 7 we can see, not surprisingly, single iteration/superstep time and job time decrease when number of partitions increases.</p>
-
-<p><img src="https://f.cloud.github.com/assets/2637239/1909947/34517656-7d0a-11e3-90bd-029cf802e35a.png" alt="14" /></p>
-
-<p><strong>Figure 8. Job time under different #partitions.  Each job converges to roughly the same level.</strong></p>
-
-<p>Experiment parameter:</p>
-
-<ul>
-<li><p>BSP+ version:</p>
-
-<ul>
-<li>Local optimization iteration count: 20</li>
-<li>All jobs runs until they converges to roughtly the same level</li>
-</ul>
-</li>
-</ul>
-
-
-<p>Then follows the interesting part.  In figure 8, several jobs are executed under different number of partitions.  By adjusting superstep count, we make all jobs converges to roughly the same level, and compare their job time.  The figure shows that the job time is a convex curve, whose inflection point occurs when #partition is 45.  So here is a trade off between parallelism and the rate of convergence: we cannot always increase the rate of convergence by increasing parallelism, since more partition implies fewer sample points within a single partition, and poorer accuracy for the parallel local optimization processes.</p>
-
-<h2>Acknowledgement</h2>
-
-<p>Thanks @liancheng for the prototype implementation of the BSP+ SGD.</p>
 </div>
   
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/01/18/how-to-use-spark-for-ml-algorithms-and-why/">Read on &rarr;</a>
+    </footer>
   
 
 
@@ -447,7 +221,9 @@ Hdfs combine file与multi file对比， &hellip;">
   </header>
 
 
-  <div class="entry-content"><p>12月17-18日参加了计算机学会组织的<a href="http://www.ccf.org.cn/sites/ccf/xhdtnry.jsp?contentId=2771337645909">推荐系统前沿课程</a>，来自工业界和学术界前沿的诸位专家大牛们分享了实践和理论模型等。受益良多，趁着余热先给大家一个介绍，稍后我拿到了slides可以继续完善。疏漏之处在所难免，还请大家谅解。
+  <div class="entry-content"><h2>引子</h2>
+
+<p>12月17-18日参加了计算机学会组织的<a href="http://www.ccf.org.cn/sites/ccf/xhdtnry.jsp?contentId=2771337645909">推荐系统前沿课程</a>，来自工业界和学术界前沿的诸位专家大牛们分享了实践和理论模型等。受益良多，趁着余热先给大家一个介绍，稍后我拿到了slides可以继续完善。疏漏之处在所难免，还请大家谅解。
 课程列表：</p>
 
 <ol>
@@ -463,145 +239,12 @@ Hdfs combine file与multi file对比， &hellip;">
 
 <p>先说心得，总体来看，推荐系统这个领域，学术界单干拼不过工业界，工业界单个拼不过学术界工业界的合体。刘铁岩老师这次游离在外，讲的是博弈论。这几大talk基本涵盖推荐系统发展方向，其中不乏小众产品，但整体对方向和故事的把握都是不错的，可能会皮厚馅薄，不过对得起“前沿”这个词，很具有指导意义。</p>
 
-<p><strong>业界声音：</strong></p>
-
-<p><strong>初敏：</strong></p>
-
-<p>初敏老师是中科院声学所的博士，在MSRA待了10年之后加盟淘宝，目前负责淘宝全网大数据处理（即淘宝网+其他全部Internet数据）。</p>
-
-<p>首先夸赞了一下双11淘宝战绩，双11: 成交额 350亿，成交1.71亿笔。2013.9中国零售额的一半，王府井前三个季度两倍，沃尔玛中国半年的成绩。系统的压力，规模，去IOE之后的成功。环环都好，交易才顺畅。网银压死了。有很多银行也搬到阿里云平台上了。电商对应实体店有优势的，容易扩张。600w店铺，11亿商品，2亿消费者，真正做到大数据，这是其他地方无可比拟的，数据为王。</p>
-
-<p>在这种环境下，店铺想知道谁是我的顾客，谁是我的潜在顾客；消费者想知道哪些是我想要的商品；甚至厂商针对供需数据实现对产品的按需生产。实际的例子是聚划算与海尔联合，形成网购C2B模式。</p>
-
-<p>淘宝的责任：个性化技术，解决问题的关键（搜索（每个人query结果是不同的，针对不同人给不同的搜索结果）、推荐、广告，店铺CRM）传统搜索引擎，是“集中相关性”；而淘宝，是“去相关性”，因为淘宝中的搜索相关性已经很强了，怎么得到更好的结果？</p>
-
-<p>个性化带来的挑战：</p>
-
-<p><strong>用户建模</strong></p>
-
-<ul>
-<li>建立行为与需求的关联</li>
-<li>长期兴趣和即时需求建模</li>
-<li>人生阶段推断（上学，刚工作，恋爱，结婚生子）</li>
-<li>买车 买房 投资理财</li>
-<li>建立兴趣和具体产品之间的关联。</li>
-</ul>
-
-
-<p><strong>从复杂的数据图中抽取信息</strong></p>
-
-<ul>
-<li>n亿用户对几十亿商品的行为（点击 浏览 购买 搜索 支付），不同的场景（聚划算 天猫 淘宝 无线）</li>
-<li>稀疏性，虚假交易等识别</li>
-<li>类目体系和产品库不断的变更、建设</li>
-</ul>
-
-
-<p><strong>大数据计算</strong></p>
-
-<ul>
-<li>每天几十T数据</li>
-<li>多种异构数据源</li>
-<li>服务的实时性、稳定性</li>
-<li>质量评估，线上线下的评估测试</li>
-</ul>
-
-
-<p><strong>周涛：</strong></p>
-
-<p>周涛老师是学术界人，但是我还是归类到业界声音 ，因为周涛老师不仅学术做得好，向工业界的转化一样做的好。周涛老师的演讲也是很令人exciting的，讲的条理清晰，总结起来如下几块：</p>
-
-<ol>
-<li><p>数学 VS 商业</p></li>
-<li><p>科学型算法 VS 实践型算法</p></li>
-<li><p>应用驱动的挑战</p></li>
-</ol>
-
-
-<p>作为能同时在学术界和工业界风声水起的年轻教授，周涛有足够自信的理由，自己的东西又多，所以讲起来让人觉得实在可信。看得书估计不少，讲的时候能逗乐大家，各方面都是很值得学习的。曾经有次邮件陶瓷，关于他一篇random walk的论文，他还给了很热心的回复。不过周涛是从物理学出身，之前貌似是在瑞士读的物理学博士，所以对建模非常擅长，习惯把显示世界的问题引导到物理学世界并加以解决。这方面有同样长处的纽约大学的Yann LeCun，他做deep learning就是从统计物理学的角度出发作出一些模型搞得大家都看不懂。</p>
-
-<p>他认为，大数据带来的最大优势就是关联，互联，而不是量大。因为关联，才导致了1+1远大于2的能力。</p>
-
-<p>商业系统具有复杂性，如推荐系统中更多考量是在图片质量，色调匹配，合适的图片、产品才会推荐到首页，而（造人类，死人类，医用类）三大类目是永远进不了推荐系统的。要遵循小而美的战略思想，向中小型商家导流，增强整个市场的活力。应该按照库存限制优化推荐展示，包括考虑一些重复性购买产品，如日用品。要考虑商家信誉，来看推荐是否靠前，以及关注用户隐私以及容忍度。</p>
-
-<p>同时推荐系统还存在一些双向选择的过程，如婚恋网的推荐，好友的推荐，跟产品推荐不同。这种情况下应避免当事人过度暴光，会让用户感觉不舒服。还要了解用户的消费特性之类的。</p>
-
-<p>数学的方法具有深刻、优美而简洁的特性。第一个讲到的是一种半监督学习问题，学名semi-supervised learning。其实这个方法在2003年ICML上有一个优秀的华人科学家叫Xiaojin Zhu，来自CMU，发表了一个Semi-Supervised Learning: From Gaussian Fields to Gaussian Processes. 这篇论文10年后，在2013年被ICML评为10年最具影响力paper。其本质就是在高维空间里找到一种流形的边界条件。他们两个人分别从机器学习和物理学的角度给予了论述，这道是值得一读的。但是这个方法同时是不能实际使用的，原因有三：1迭代慢 2稳定性差，易受到矩阵微扰的影响 3 无法做增量计算。</p>
-
-<p>第二个讲到的是哈密顿模型，哈密顿指的是网络的一种能量，通过对一种网络定义一个哈密顿量可以求得网络整体的似然度。现在有一种假设，在一个网络中，三角形是稳定结构，一条边出现如果能增加网络中三角形的个数，那么它存在于网络中的可能性越大。这个方法于LeCun的deep learning模型非常像，后者是定义一个概率上的网络，通过寻找到一种configuration让网络能量最小化来优化模型，本质如出一辙。但是还是不能实际应用，原因有二 1计算网络的似然度超级复杂 2他所采用的模拟退火算法慢，只能用1000-2000节点的网络，所以对于现实问题不适用。大家可能会wondering，为什么LeCun的模型就能用呢？这就归功于Hinton，把原来超级复杂的优化问题用一个现实可解的，非常简单的算法解决来，才有了deep learning的春天。</p>
-
-<p>第三个是一种结构微扰模型，在一个网络中，如果增加一条边，不会严重影响原始网络结构，那么这条边应该存在于这个网络内。通过将矩阵对角化，求得特征值、特征向量，然后保持特征向量不变，在特征值上进行微扰，之后恢复矩阵结构的方法来解决问题。这个问题同样是非常慢，而且不能增量多，所以现实不可行。
-之后讲了一些简单的算法，有关联规则挖掘，协同过滤，局部扩散，共同邻居，有向网络势能理论的方法，这里不再展开。</p>
-
-<p><strong>研究主流：</strong></p>
-
-<p><strong>杨强：</strong></p>
-
-<p>杨强老师基本上是对rec sys的发展做了一个总结。从基础统计方法，到similarity based方法，协同过滤作为第一代推荐系统的代表统计rec世界10-20年之久。之后第二代以feature based matrix factorization为代表，主要从各大竞赛中走出来，如Netflix大赛，KDD竞赛。代表有Steffen Rendle和他的factor machine，以及陈天棋（上海交大）和他的feature-based matrix factorization，两种方法如出一辙。后者现在跟随GraphLab创始人Carlos Guestrin 在uwashington 也是颇有建树。在畅想中的第三代是automated feature extraction的推荐，主要依靠deep learning技术。这种方法我在天津听deep learning课程时候也思考过，不过当时微软的邓力老师说，deep learning在这个方面几乎没有潜力。不过现在看来Restricted Boltzmann Machine尚有一战之力？邓力原意是指deep的架构不适合推荐，不过其中的shallow方法还是可以借鉴的。这点尚没见有人做。</p>
-
-<p>主要存在的挑战一是数据量大，而是99%的缺失数据导致稀疏性高，三是训练集测试集的差异，或者因时间改变导致人的行为改变，底层分布变化。四是很多影响无法度量，如用户是否高兴。五是数据分布本身有很高的bias，不是自然分布，正负例分布不均。</p>
-
-<p>着重强调了推荐系统要使用群众智慧调节，多使用用户反馈，wisdom of the crowds。着重强调了transfer learning在数据稀疏中的应用，很有可搞的价值。提及了他的一个学生使用QQ关系网络数据学习一个结果transfer到weibo好友预测并得到很好的效果。着重强调了active learning的重要性，即推荐过程中及时challenge用户，主动发起交互。</p>
-
-<p>对于当代推荐技术（第二代），着重强调了feature extraction的重要性，陈天棋工作重要的一部分就是做了一个decision forest来提取feature。淘宝也是如此。</p>
-
-<p><strong>唐杰：</strong></p>
-
-<p>唐杰老师有三点值得学习，一是问题使用，motivation找的好，并且有系统支撑，二是找问题仔细，并能解决，而且还能说出意义，三是知道怎样把未知的问题转换成已知的问题。</p>
-
-<p>唐杰讲的主要是跨网络的信息推荐，用了改进的topic model（或者叫做factor graph更合适？），然后topic之间做了一些融合。主要解决了三个问题，一是link sparse；二是 合作网络需要互补；三是 有严重的topic skewness，需要纠偏。具体内容，唐杰老师已经在微博发布了自己的slide，去看看更加一目了然。</p>
-
-<p>关于LDA的发明与PLSI孰高孰低的思考，唐杰老师认为Blei只是在PLSI上做了增量，只不过把模型卖的很成功，他很看好PLSI发明者，是SIGIR99的论文。PLSI作者我不熟悉，不过Blei作为topic model一系列领军人物，还是可圈可点的。这个有机会再八卦。</p>
-
-<p><strong>陈恩红：</strong></p>
-
-<p>陈恩红老师主要做context aware recommendation，情景感知的信息推荐，09年开始与NOKIA合作，虽然已经被收购了，但是合作没有中断。</p>
-
-<p>第一个问题是Hp打印机的智能打印推荐，web页面打印时，可以根据用户常用选择对打印区域进行推荐，得到更好的打印体验。这个问题，故事不错，但是数据可能是个问题，例如数据是一台打印机的？还是多台打印机的？多台打印机之间怎么共享transaction log？用户是否会经常打印web页面？因为用户经常性选择打印正文，所以推荐的必要性？其实这个工作类似于有道笔记的网页剪报，不同之处在于后者剪下来直接存在云笔记里面。如果只有正文的话直接识别html好了，做个推荐系统意义并不大。</p>
-
-<p>第二个是用户兴趣的扩散，举一个例子，用户A，B都喜欢一个电影，然而A喜欢电影是因为其中的武侠元素，B喜欢电影是因为他是奥斯卡大片，所以这个电影中有不同的topic存在，我们要感知用户的真是心理体验。然后就用了一个topic model，LDA，得到推荐结果。之后为了让推荐结果多样性，在topic graph上面做了一个random walk，扩大一下推荐范围。</p>
-
-<p>最后是使用手机进行情景推荐，据说NOKIA给他们用户一天24小时的行为数据，当时我就觉得这事儿商业上不好做，没有用户能够share这种数据，这牵扯到极大的隐私问题，除非实验用户。使用了Nokia 443个用户 800w情景数据。然后他们对用户行为分快，得到其中的一个一个的context，每个context是连贯的上下文，例如，打球的context，看电影的context。然后又用了一个topic model来解决推荐的问题。不过这种context-aware的推荐你必须考虑实时性，否则你推荐结果算出来用户已经走了怎么办？LDA这种模型用Gibbs sampling做的话，真实场景下是要考虑实时性问题的。当然，这些年有很多人都做了online的LDA，我们在Spark上也做了LDA的batch training + streaming process + online query，所以这件事情还是可以做的。</p>
-
-<p>最后一块是旅游套餐推荐，不过个人感觉还是看马蜂窝之类的更好。像我这种小白旅游者都倾向于自己选地方，不喜欢跟团的，也不喜欢别人设定的路线。所以没仔细听。</p>
-
-<p><strong>机制设计：</strong></p>
-
-<p><strong>刘铁岩：</strong></p>
-
-<p>刘铁岩老师是我单向的老朋友了，经常去听他的talk，只是他不认识我。博弈论方面讨论目前主要作用是设计广告竞拍的机制。这方面没有背景知识很难理解，不过好歹这次听懂了。关于广告投放中的博弈论问题，估计老冯（诺以曼）生前也没觉得中国会有那么多追随者。主要还是什么样的竞标策略会达到均衡，然后在均衡条件下社会财富，以及媒体的回报有多大。</p>
-
-<p>为了推动人类社会进步，博弈学者们通常会考虑在一种竞拍机制的设置下，能够让社会资源的配置符合所有人的心理预期，这样让大家都happy的赚钱，同时考虑媒体revenue最大化，以保证媒体的收益。</p>
-
-<p>从博弈论作用于计算广告学的历史来看，最初是简单的一价拍卖法，即first price，简称FP（不是函数式编程）。FP非常简单，考虑两个竞拍者竞争同一个广告位，自然是价高者得，然后媒体（广告平台）收取竞拍者的报价。如此这般，价高者很happy，因为拿到了社会资源（广告位），并且得到了收益。考虑多个竞拍者的情况下，FP升级为广义一价拍卖法GFP，怎么做呢？根据大家的出价对竞拍者“排排坐”，然后价格最高者拿到最好的广告位，价格第二名拿到第二好的广告位，以此类推。</p>
-
-<p>FP和GFP非常好，以至于用了10-20年的时间。因为在FP和GFP的情况下，会达到均衡状态，并且可以证明，能够达到比较好的社会财富最大化。但是这种情况还存在一个问题，那就是不能保证媒体的收益。如果所有广告主联合起来，共同对付媒体，那么他们就能以平均低的多的价格获得原有广告位，媒体就会赔钱。</p>
-
-<p>之后William Vickrey推出了二价拍卖法，针对的还是两个广告主竞标一个广告位的情形。当然还是价高者得，但是媒体收的钱是第二名的报价。可以考证在这种情况下广告主倾向于说真话，因为说真话会得到最大的收益。在说真话的情况下可以达到纳什均衡，这样会保证社会财富的最大化并保证媒体的收益。William大神还因为这个二价拍卖法获得了1996年Nobel经济学奖。</p>
-
-<p>对于多人情况下的推广，二价拍卖法最佳的推广就是VCG，同样是广告主们排排坐，得到的广告位也是按照出价的排序来的，不同的是媒体收的钱是该广告主加入竞拍后，对社会财富带来的影响。这个方法比较绕，但是确是二价拍卖法完美的推广。</p>
-
-<p>正是由于VCG太难以理解，广告主们都倾向于不接受。Google于2002年推出了广义二价拍卖法，并号称自己是二价拍卖法完美的推广，其实并不是这样。不过将错就错，广义二价拍卖法反倒成为工业界的事实标准。不同之处在于广义二价拍卖法收钱与VCG不同，对于每个广告主收的钱是排在他后面的广告主的出价。乍一看这个才是二价拍卖法完美的推广，其实不是的。这种情况下广告主说假话可能得到更大的收益。那为什么广义二价拍卖法还能获得市场？主要是因为这个方法其实还是可以达到均衡的，并且能保证均衡条件下最差的社会财富比最佳情况也坏不了太多，而且广告主们通常认为这种方法才是可以理解的。</p>
-
-<p>但是实际问题是复杂的，以上种种设计都是在简单情况下的分析。实际上，有很多问题导致了均衡不复存在。例如，现在广告主购买的都是keyword，但是竞标却是在query上进行的，query与keyword的match存在很多问题。再比如，假设情况下各个广告之间是相互独立的，但实际情况不是如此，例如微软和Dell同时竞争一个广告位，Dell获得了广告位并非说明对微软是个损失，反而会引起微软的产品销售同时增加。实际上，美国08年的金融危机在很大程度上也是吃了这种假设的亏，在金融市场中他们使用了过于简化的模型，即认为各个金融产品之间的负债情况是独立的。但是当房市泡沫之后，对其他金融产品也因起了极大的扰动，相互独立的假设不复存在，一连串的相互影响导致金融市场崩溃。这对新时代的机器学习提出了新的挑战。铁岩他们组有关于在预测情况下，人类行为随着预测结果进行变化的研究，尽量使用隐变量消除这种“不定的变化”，重新达到一种条件独立性。</p>
-
-<p><strong>人机交互：</strong></p>
-
-<p><strong>陈黎：</strong></p>
-
-<p>陈黎老师做的主要关于推荐系统的界面设计，之前我从来没思考过这类问题，这次听倒是对我有些启发。她是北大的本硕，学校是做电子的，博士去了EPFL，就是Martin发明scala的学校，与爱因斯坦的母校也在一座城市内。博士期间主要做人机界面。他们主要关注大件的推荐，如房子，车子，因为这些东西人一生可能买不了几次，所以他们称之为“高风险推荐”。</p>
-
-<p>主要做了两个东西，一个是interactive的用户推荐算法，另一种是active的用户推荐算法。总结来说，就是推荐产品的过程中，不光推荐产品本身，还会推荐一些别人对产品的评价，通过这种评价构成结构化数据，让用户明白自己到底需要什么，辅助用户决策，所以我认为更应该算是assistant，而不是recommendation。</p>
-
-<p>她们做了很多文字排版，界面设计，眼动实验，还是很有趣的，这个可以直接看slide，比较直观。</p>
-
-<p>听得时候我想起了之前做过的题目，就是在大众点评的数据中，根据用户对餐馆的评价，寻找对餐馆的各个侧面（aspect），例如，餐馆的口味，环境，服务，菜系，价格等等。然后做一些综合评价。</p>
-
-<p><strong>总结：</strong></p>
-
-<p>总体来看，推荐系统行业还是呈现一片欣欣向荣的场面。作为下一代搜索引擎的推荐系统，自一出现就一直是关注的焦点，同时也是业界和学术界的宠儿。RecSys大会的出现表现了推荐系统在学术界的活力，从推荐系统出发，同时推进了大规模矩阵分析，大规模特征提取，大规模分布式框架，用户画像提取，全网数据融合，多源、异质网路分析，大规模文本分析挖掘，数据有效性、隐私与安全的分析，隐变量模型、图模型分析等等一系列技术的再开发与再进步。但是也要看到，学术界工业界缺乏交流引起的巨大鸿沟，优雅的学术艺术和实干的工业应用之间无法相互理解，学术成果难以转化，工业应用不易提升。徘回在两者的边缘，作者不断感受到系统才是经济基础，算法是上层建筑。没有经济基础，只求上层建筑的做法只是不断筑起空中楼阁，没有好故事可以讲，没有好问题可以解，没有好成果可以转化。只求经济基础不求上层建筑也是不可取，不在理解上层建筑的情况下一味追求经济基础的“大”和“快”，有可能偏离实际，不切和应用，得到的只能是一些preliminary的结果，不具有代表性。推荐系统问题是个实际问题，那就要放到实际场景中去看，同时又是个学术问题，有很多未知的技术方法等待被发现，两者互相结合才能做到真正优雅可用。</p>
 </div>
   
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/01/17/adl45-meeting-record/">Read on &rarr;</a>
+    </footer>
   
 
 
@@ -639,88 +282,12 @@ Hdfs combine file与multi file对比， &hellip;">
 
 <p>Petuum共有9050行代码，代码文件数39个。整个Petuum这么多源码，其实就只实现了一个LDA，外加一个Hello world。目前没有一个pull request和issue，另外已经很久（20天）没有更新了。发现C++写的在github上不是很受欢迎，GraphLab也很少有pull request。相比之下Spark的Pull request之多，热度完全不同。</p>
 
-<p><strong>一级目录有：</strong></p>
-
-<ul>
-<li><p>Apps：LDA以及Hello world的具体实现</p></li>
-<li><p>Machinefiles：服务器worker的配置</p></li>
-<li><p>Scripts：启动/关闭job的脚本</p></li>
-<li><p>Src：主要的源码</p></li>
-<li><p>Third_party：编译时拉下来的第三方库</p></li>
-</ul>
-
-
-<p><strong>Src下共有以下几个代码目录：</strong></p>
-
-<ul>
-<li><p>Comm_handler：主要是命令行参数解析，ZMQ配置等</p></li>
-<li><p>Consistency：一致性控制、一致性策略，以及操作日志记录</p></li>
-<li><p>Include：头文件集合</p></li>
-<li><p>Proxy：client代理和server代理。两者用来RPC通信，类似于我写的SSP中的akka框架中的一小部分功能</p></li>
-<li><p>Server：参数服务器，其实就是一些table的集合（允许多个参数服务器存在，可以进行参数的partition）</p></li>
-<li><p>Storage：table的存储，cache，以及还入换出策略</p></li>
-<li><p>Util：逻辑时钟vector clock，就是Dynamo中的策略，以及一些小组件</p></li>
-</ul>
-
-
-<p><strong>以LDA为例（也没有别的例子），其大体逻辑如下：</strong></p>
-
-<ol>
-<li><p>初始化tablegroup，用于存储一系列table</p></li>
-<li><p>注册主线程</p></li>
-<li><p>在tableGroup中创建table</p></li>
-<li><p>创建LDA sampler</p></li>
-<li><p>sampler读数据（直接读到内存中，而且是压缩格式，只读取字数总量）</p></li>
-<li><p>创建sampling的线程组</p></li>
-<li><p>在线程组创建线程，并绑定在runSampling的函数上</p></li>
-<li><p>执行这些线程</p></li>
-<li><p>关闭线程，table group，并结束</p></li>
-</ol>
-
-
-<p><strong>整个过程中，8是实际干活的，也是唯一并行的地方。将这部分放大如下：</strong></p>
-
-<ol>
-<li><p>初始化每个线程拥有的数据，即数据分片，每个thread处理一片</p></li>
-<li><p>检查每个线程状态</p></li>
-<li><p>向参数服务器注册线程</p></li>
-<li><p>初始化topic</p></li>
-<li><p>进入sampling主循环</p></li>
-<li><p>结束，输出结果</p></li>
-</ol>
-
-
-<p><strong>其中5是主要干活的，这里每个thread针对自己的一片文件进行sampling操作。该部分放大如下：</strong></p>
-
-<ol>
-<li><p>初始化wordsampler</p></li>
-<li><p>采样一次迭代</p></li>
-<li><p>计算似然度</p></li>
-<li><p>barrier混合当前状态</p></li>
-</ol>
-
-
-<p><strong>这里有一些取巧的地方，也是表现处SSP的地方。</strong></p>
-
-<p>首先是初始化wordsampler的时候，需要从server获取最新的参数，这时参数请求不是发给server，而是发给本thread的cache，本thread cache合法则使用，否则使用本process的cache，合法则使用，否则才去server请求参数。（合法与否通过iteration的步子是否过于stale判断）。而向server请求参数也不是直接发送，是由clientProxy向serverProxy请求，serverProxy向server群体广播这个消息，拿到参数值。</p>
-
-<p>其次是每次迭代之后首先更新本地cache，即read-my-write。之后混合当前状态，这个混合只是个“建议混合”，本质上是将本次操作的日志记录到opLog中。opLog中定义的向server更新的操作只有两个：INC和PUT，一个用于增量，一个用于修改。而每当table调用iterate函数的时候，会引导到consistency_controller类的DoIterate函数，随机触发背后clientProxy的sendOpLog函数，该函数通过RPC发送序列化之后的opLog给serverProxy，之后交由适当的server反序列化并apply到自身。
-之后是一些注意事项：</p>
-
-<ul>
-<li><p>clientProxy 用作模拟RPC call，发送请求获得参数</p></li>
-<li><p>只在headclient上进行doc likelihood计算，而每个线程计算自己的localwordlikelihood</p></li>
-<li><p>真正对table的远程操作是在fast_word_sampler搞定的。</p></li>
-<li><p>clientproxy 负责SendOpLog 到server，而这个调用是在每次table调用Iterate的时候用到的。</p></li>
-<li><p>opLog的混合在server文件中</p></li>
-</ul>
-
-
-<p>整个工程目前只有这些内容。其他的dynamic scheduler之类的统统没有。论文里号称matrix factorization，以及coordinate descent之类的测试也没见着。不过整体用C++写还是蛮挑战的，用scala+<a href="http://akka.io/">akka</a>百来行就能实现差不多的功能。</p>
-
-<p>之前一些简单的测试效果感觉不是很满意，例如stale增大后likelihood抖动很严重，而且效果对比BSP没有明显的变好太多。后续我会详细测试一下这个效果。</p>
 </div>
   
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/01/17/petuum-source-code-read-and-initial-test-result/">Read on &rarr;</a>
+    </footer>
   
 
 

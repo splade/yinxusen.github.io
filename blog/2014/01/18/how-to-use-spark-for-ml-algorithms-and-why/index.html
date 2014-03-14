@@ -132,6 +132,9 @@
 </ul>
 
 
+<!--more-->
+
+
 <h2>Introduction</h2>
 
 <p>In this PR, we propose a new implementation of <code>GradientDescent</code>, which follows a parallelism model we call BSP+, inspired by Jeff Dean&rsquo;s <a href="http://research.google.com/archive/large_deep_networks_nips2012.html">DistBelief</a> and Eric Xing&rsquo;s <a href="http://petuum.org/research.html">SSP</a>.  With a few modifications of <code>runMiniBatchSGD</code>, the BSP+ version can outperform the original sequential version by about 4x without sacrificing accuracy, and can be easily adopted by most classification and regression algorithms in MLlib.</p>
