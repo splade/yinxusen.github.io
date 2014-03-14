@@ -9,7 +9,7 @@
   <meta name="author" content="Xusen">
 
   
-  <meta name="description" content="## Background 2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the &hellip;">
+  <meta name="description" content="Background 2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,124 +66,6 @@
     <div id="content">
       <div class="blog-index">
   
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/03/11/crazy-small-files-in-hdfs.markdown/">Crazy Small Files in HDFS</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-03-11T16:28:47+08:00" pubdate data-updated="true">Mar 11<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content">## Background
-
-2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the core of LDA - the Gibbs sampling, I find that there are some trivial matters in the way of creating a usable LDA. Mostly, they are the pre-processing of text files. For the word segmentation, both Chinese and English, I wrap Lucene with a piece of scala code to support that, just like what [ScalaNLP](http://www.scalanlp.org/) does. But the input format traps me lots of time.
-
-The standard input format of Spark is from the interface called `textFiles(path, miniSplit)` in the `SparkContext` class. But it is a line processor, which digest one line each time. However what I want is a KV processor, i.e. I need an interface which can return me a KV pair (fileName, content) given a directory path. So I try to write my own `InputFormat`.
-
-Firstly, I try to use the `lineReader` and handle the fragments of blocks myself, later I find that it&#8217;s both ugly and unnecessary, just as the code list below. I have to glue them together with a fixed seperator - &#8216;\n&#8217;. Instead of that, I use a more low level interface named `FSDataInputStream` to read an entire block once time. However, there are still some details need to be improved. Here, let&#8217;s begin our explore. 
-
-<figure class='code'><figcaption><span>lineReader version RecordReader (the terrible version) - BatchFileRecordReader.java</span></figcaption>
-<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-<span class='line-number'>6</span>
-<span class='line-number'>7</span>
-<span class='line-number'>8</span>
-<span class='line-number'>9</span>
-<span class='line-number'>10</span>
-<span class='line-number'>11</span>
-<span class='line-number'>12</span>
-<span class='line-number'>13</span>
-<span class='line-number'>14</span>
-<span class='line-number'>15</span>
-<span class='line-number'>16</span>
-<span class='line-number'>17</span>
-<span class='line-number'>18</span>
-<span class='line-number'>19</span>
-<span class='line-number'>20</span>
-<span class='line-number'>21</span>
-<span class='line-number'>22</span>
-<span class='line-number'>23</span>
-<span class='line-number'>24</span>
-<span class='line-number'>25</span>
-<span class='line-number'>26</span>
-<span class='line-number'>27</span>
-<span class='line-number'>28</span>
-<span class='line-number'>29</span>
-<span class='line-number'>30</span>
-<span class='line-number'>31</span>
-<span class='line-number'>32</span>
-<span class='line-number'>33</span>
-<span class='line-number'>34</span>
-</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="cm">/**</span>
-</span><span class='line'><span class="cm">     * Reads an entire block contents. Note that files which are larger than the block size of HDFS</span>
-</span><span class='line'><span class="cm">     * are cut by HDFS, then there are some fragments. File names and offsets are keep in the key,</span>
-</span><span class='line'><span class="cm">     * so as to recover entire files later.</span>
-</span><span class='line'><span class="cm">     *</span>
-</span><span class='line'><span class="cm">     * Note that &#39;\n&#39; substitutes all other line breaks, such as &quot;\r\n&quot;.</span>
-</span><span class='line'><span class="cm">     */</span>
-</span><span class='line'>    <span class="nd">@Override</span>
-</span><span class='line'>    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">next</span><span class="o">(</span><span class="n">BlockwiseTextWritable</span> <span class="n">key</span><span class="o">,</span> <span class="n">Text</span> <span class="n">value</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
-</span><span class='line'>        <span class="n">key</span><span class="o">.</span><span class="na">fileName</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="na">getName</span><span class="o">();</span>
-</span><span class='line'>        <span class="n">key</span><span class="o">.</span><span class="na">offset</span> <span class="o">=</span> <span class="n">pos</span><span class="o">;</span>
-</span><span class='line'>        <span class="n">value</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">pos</span> <span class="o">&gt;=</span> <span class="n">end</span><span class="o">)</span> <span class="o">{</span>
-</span><span class='line'>            <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
-</span><span class='line'>        <span class="o">}</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="n">Text</span> <span class="n">blockContent</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Text</span><span class="o">();</span>
-</span><span class='line'>        <span class="n">Text</span> <span class="n">line</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Text</span><span class="o">();</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="k">while</span> <span class="o">(</span><span class="n">pos</span> <span class="o">&lt;</span> <span class="n">end</span><span class="o">)</span> <span class="o">{</span>
-</span><span class='line'>            <span class="n">pos</span> <span class="o">+=</span> <span class="n">reader</span><span class="o">.</span><span class="na">readLine</span><span class="o">(</span><span class="n">line</span><span class="o">);</span>
-</span><span class='line'>            <span class="n">blockContent</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">line</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(),</span> <span class="mi">0</span><span class="o">,</span> <span class="n">line</span><span class="o">.</span><span class="na">getLength</span><span class="o">());</span>
-</span><span class='line'>            <span class="n">blockContent</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">LFs</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">LFs</span><span class="o">.</span><span class="na">length</span><span class="o">);</span>
-</span><span class='line'>        <span class="o">}</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">totalLength</span> <span class="o">&lt;</span> <span class="n">blockContent</span><span class="o">.</span><span class="na">getLength</span><span class="o">())</span> <span class="o">{</span>
-</span><span class='line'>            <span class="n">value</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">blockContent</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(),</span> <span class="mi">0</span><span class="o">,</span> <span class="n">totalLength</span><span class="o">);</span>
-</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
-</span><span class='line'>            <span class="n">value</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">blockContent</span><span class="o">.</span><span class="na">getBytes</span><span class="o">());</span>
-</span><span class='line'>        <span class="o">}</span>
-</span><span class='line'>
-</span><span class='line'>        <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
-</span><span class='line'>    <span class="o">}</span>
-</span></code></pre></td></tr></table></div></figure>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2014/03/11/crazy-small-files-in-hdfs.markdown/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
   
   
     <article>
@@ -504,10 +386,6 @@ Firstly, I try to use the `lineReader` and handle the fragments of blocks myself
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
-    
-      <li class="post">
-        <a href="/blog/2014/03/11/crazy-small-files-in-hdfs.markdown/">Crazy Small Files in HDFS</a>
-      </li>
     
       <li class="post">
         <a href="/blog/2014/03/11/crazy-small-files-in-hdfs/">Crazy Small Files in HDFS</a>
