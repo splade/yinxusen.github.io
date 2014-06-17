@@ -9,7 +9,7 @@
   <meta name="author" content="Xusen">
 
   
-  <meta name="description" content="程序呓语 毫无疑问, 你将经历的是一次奇妙之旅. 在现有的分布式系统框架内, 如果非要挑选其一可以视为艺术, 那就是现在呈现在你眼前的. Spark, 在山寨风行的大数据/分布式开源市场内, 犹若火花闪现. 这永远不是终结, 而是开天辟地的第一团火光. 星星之火, 可以燎原. 然而, 我们不能过誉 &hellip;">
+  <meta name="description" content="Background 2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,61 +66,6 @@
     <div id="content">
       <div class="blog-index">
   
-  
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/blog/2014/06/17/spark-internals-deploy/">Spark Internals: Deploy, Scheduling and RDD</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-06-17T12:25:51+08:00" pubdate data-updated="true">Jun 17<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><h2>程序呓语</h2>
-
-<p>毫无疑问, 你将经历的是一次奇妙之旅. 在现有的分布式系统框架内, 如果非要挑选其一可以视为艺术, 那就是现在呈现在你眼前的. Spark, 在山寨风行的大数据/分布式开源市场内, 犹若火花闪现. 这永远不是终结, 而是开天辟地的第一团火光. 星星之火, 可以燎原.</p>
-
-<p>然而, 我们不能过誉. 任何新技术的闪现都不是一蹴而就. 循环往复, 螺旋上升是技术的发展必由之途. 从百年之前的无线电技术发明, 到调频对调幅的憋屈之战, 未经开场便遭遇电视技术的碾压, 再到互联网的兴起无不展现一曲壮烈的华章. 对于Spark而言, 作为Apache开源社区旗下的一员悍勇, 是站在了巨象的肩膀上. 是的, 永远不容忽视Hadoop迄今为止的统治地位, 及其用于破旧立新的情怀.</p>
-
-<p>两百年前科学巨匠巴贝奇的差分机, 和爱达·拜伦天才般智慧的编程思想, 两人以穿越般的身姿错生在那个不属于他们的文艺复兴时代. 百年后, 图灵, 丘奇, 冯诺依曼等计算机先哲开拓了新时代. 新千年后十年, 端设备的极大普及以及”长长的线路”极大发展, 给世界人们带来了珍宝般的财富, 所谓的21世纪黑金 – 数据. 驰骋在这个时代, 计算机的世界越来越有海贼王的精彩 – 财富就在那儿, 去拿吧! – 一个崭新的时代.</p>
-
-<p>不同的是, 数据时代的one piece可不止一份. 或许是金钱诱惑的驱动(哪件技术的发展不是呢?), 或许带着一点贡献时代的情怀, 从21世纪头五年到现在, 计算机世界, 乃至全世界, 进入了大数据的时代.</p>
-
-<p>每个胸怀数据之志的计算机人都在寻找one piece的通路. Hadoop/Spark等兴起无不是众望所归, 生逢其时. 平心而论, 大数据处理平台等带来的”新技术”并非都是新技术, 也肯定不是最精尖的那些. 然而, 那些高端的生不逢时的技术, 只能是恰如猛虎卧荒丘.</p>
-
-<p>历经头5年Hadoop热潮的人们应该不会对此陌生: 一个由脚本语言粘合起来的世界. 我们写好各种code snippets, 打成jar包, 以shell script作为控制器, 以系统时间为salt制定输入输出路径, 串起逻辑流. SummingBird的出现或许可以减轻你的负担, 不过那也是近一两年的事情了. 在Spark的世界里, 我们要告诉大家的第一件事就是Driver.</p>
-
-<p>或许你可以把Driver看做Hadoop世界中的shell script, 但又远远不止. 可以说是”虽不中, 亦不远矣”. 对于Spark用户来说, Driver无处不在: 当你打开Spark Shell的时候, 你就已经开始跟Driver打交道了. 当你写下<code>val a = 1</code> 这种简单的语句时, Driver就已经开始为你忙活了. 当然, Spark Shell中有一些特殊的情况, 当你在真正应用代码中执行到这句时, 其实, 几乎什么都没发生. 在这里, 你可以把Driver当做第一次与Spark交流的大门.</p>
-
-</div>
-  
-  
-    <footer>
-      <a rel="full-article" href="/blog/2014/06/17/spark-internals-deploy/">Read on &rarr;</a>
-    </footer>
-  
-
-
-    </article>
   
   
     <article>
@@ -441,10 +386,6 @@
 <section>
   <h1>Recent Posts</h1>
   <ul id="recent_posts">
-    
-      <li class="post">
-        <a href="/blog/2014/06/17/spark-internals-deploy/">Spark Internals: Deploy, Scheduling and RDD</a>
-      </li>
     
       <li class="post">
         <a href="/blog/2014/03/11/crazy-small-files-in-hdfs/">Crazy Small Files in HDFS</a>
