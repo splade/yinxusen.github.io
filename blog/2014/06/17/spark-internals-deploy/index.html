@@ -9,7 +9,7 @@
   <meta name="author" content="Xusen">
 
   
-  <meta name="description" content="Spark运行时 程序呓语 用户程序与Driver 毫无疑问, 你将经历的是一次奇妙之旅. 在现有的分布式系统框架内, 如果非要挑选其一可以视为艺术, 那就是现在呈现在你眼前的. Spark, 在山寨风行的大数据/分布式开源市场内, 犹若火花闪现. 这永远不是终结, 而是开天辟地的第一团火光. &hellip;">
+  <meta name="description" content="程序呓语 毫无疑问, 你将经历的是一次奇妙之旅. 在现有的分布式系统框架内, 如果非要挑选其一可以视为艺术, 那就是现在呈现在你眼前的. Spark, 在山寨风行的大数据/分布式开源市场内, 犹若火花闪现. 这永远不是终结, 而是开天辟地的第一团火光. 星星之火, 可以燎原. 然而, 我们不能过誉 &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -92,11 +92,7 @@
   </header>
 
 
-<div class="entry-content"><h1>Spark运行时</h1>
-
-<h2>程序呓语</h2>
-
-<h3>用户程序与Driver</h3>
+<div class="entry-content"><h2>程序呓语</h2>
 
 <p>毫无疑问, 你将经历的是一次奇妙之旅. 在现有的分布式系统框架内, 如果非要挑选其一可以视为艺术, 那就是现在呈现在你眼前的. Spark, 在山寨风行的大数据/分布式开源市场内, 犹若火花闪现. 这永远不是终结, 而是开天辟地的第一团火光. 星星之火, 可以燎原.</p>
 
@@ -110,7 +106,7 @@
 
 <p>历经头5年Hadoop热潮的人们应该不会对此陌生: 一个由脚本语言粘合起来的世界. 我们写好各种code snippets, 打成jar包, 以shell script作为控制器, 以系统时间为salt制定输入输出路径, 串起逻辑流. SummingBird的出现或许可以减轻你的负担, 不过那也是近一两年的事情了. 在Spark的世界里, 我们要告诉大家的第一件事就是Driver.</p>
 
-<p>或许你可以把Driver看做Hadoop世界中的shell script, 但又远远不止. 可以说是”虽不中, 亦不远矣”. 对于Spark用户来说, Driver无处不在: 当你打开Spark Shell的时候, 你就已经开始跟Driver打交道了. 当你写下val a = 1 这种简单的语句时, Driver就已经开始为你忙活了. 当然, Spark Shell中有一些特殊的情况, 当你在真正应用代码中执行到这句时, 其实, 几乎什么都没发生. 在这里, 你可以把Driver当做第一次与Spark交流的大门.</p>
+<p>或许你可以把Driver看做Hadoop世界中的shell script, 但又远远不止. 可以说是”虽不中, 亦不远矣”. 对于Spark用户来说, Driver无处不在: 当你打开Spark Shell的时候, 你就已经开始跟Driver打交道了. 当你写下<code>val a = 1</code> 这种简单的语句时, Driver就已经开始为你忙活了. 当然, Spark Shell中有一些特殊的情况, 当你在真正应用代码中执行到这句时, 其实, 几乎什么都没发生. 在这里, 你可以把Driver当做第一次与Spark交流的大门.</p>
 
 <!--more-->
 
@@ -119,19 +115,19 @@
 
 <p>从client中来, 到executor中去</p>
 
-<p>Client是Driver初生的港湾. 当用户兴致勃勃的用手指敲下./spark-submit的时候, Client就在背后服务了, 并产生了一个名作driverClient的actorSystem. 随后从这个actorSystem中启动一个clientActor, 开始处理用户提交任务时的输入数据. 这些数据对于应用程序的运行来说都至关重要, 例如Master在什么地方, 运行时java url, 以及driver所需的CPU核数, 内存等. clientActor得到线程开始运行的时候, 会向Master获取一个masterActor的引用, 以便与其进行通信. clientActor同时会向Akka系统的事件流注册获取自己的关键事件. 随后driver与master通过Akka架构开始交流. 第一件事就是driver向master注册.</p>
+<p>Client是Driver初生的港湾. 当用户兴致勃勃的用手指敲下<code>./spark-submit</code>的时候, Client就在背后服务了, 并产生了一个名作<code>driverClient</code>的actorSystem. 随后从这个actorSystem中启动一个<code>clientActor</code>, 开始处理用户提交任务时的输入数据. 这些数据对于应用程序的运行来说都至关重要, 例如Master在什么地方, 运行时java url, 以及driver所需的CPU核数, 内存等. <code>clientActor</code>得到线程开始运行的时候, 会向Master获取一个masterActor的引用, 以便与其进行通信. clientActor同时会向Akka系统的事件流注册获取自己的关键事件. 随后driver与master通过Akka架构开始交流. 第一件事就是driver向master注册.</p>
 
-<p>如果当前Master在ALIVE的状态下(Master状态共有ALIVE, STANDBY, RECOVERING, COMPLEING_RECOVERY这四种), Master接受Driver的提交请求, 根据Driver带过来的自身描述文件创建Driver, 并加入到等待队列. 之后Master会主动执行一次schedule方法, 进行Driver(当然还包括Executor)真正的执行调度. 该调度包含了Driver和Executor的执行调度, 在此我们只说明Driver相关的逻辑. Driver提交相对简洁, 对所有的worker进行一下随机洗牌, 对于随机洗牌后的任意一个Worker, 遍历Driver等待队列, 如果当前Worker能够满足该Driver的执行, 则在该Worker上载入Driver. 最后是Master向clientActor汇报Driver提交成功的消息. 可想而知, 这里的成功提交只是说明Master认同了当前Driver, 但是很有可能该Driver还挂载在等候队列中没有被调度.</p>
+<p>如果当前Master在<code>ALIVE</code>的状态下(Master状态共有<code>ALIVE</code>, <code>STANDBY</code>, <code>RECOVERING</code>, <code>COMPLEING_RECOVERY</code>这四种), Master接受Driver的提交请求, 根据Driver带过来的自身描述文件创建Driver, 并加入到等待队列. 之后Master会主动执行一次<code>schedule</code>方法, 进行Driver(当然还包括Executor)真正的执行调度. 该调度包含了Driver和Executor的执行调度, 在此我们只说明Driver相关的逻辑. Driver提交相对简洁, 对所有的worker进行一下随机洗牌, 对于随机洗牌后的任意一个Worker, 遍历Driver等待队列, 如果当前Worker能够满足该Driver的执行, 则在该Worker上载入Driver. 最后是Master向clientActor汇报Driver提交成功的消息. 可想而知, 这里的成功提交只是说明Master认同了当前Driver, 但是很有可能该Driver还挂载在等候队列中没有被调度.</p>
 
-<p>Worker接收到Master发过来的载入Driver请求后, 会尝试启动一个DriverRunner, 由DriverRunner管理Driver的状态, 包括出错后自动重启等. 前者创建一个线程, 针对Driver的描述拼凑出Driver的运行指令, 之后使用该指令启动一个新的进程, 此时Master启动完毕. 那么这个Driver启动的到底是什么呢? 它用什么逻辑和后续的Executor交互呢? 答案就来自Driver的描述字符. 追本溯源, 这个描述字符最初是由clientActor拼凑之后传递给Master的, 而其中的命令又来自Client启动时的命令行参数. 聪明的你也许已经想出来了, 这里运行的Driver可不就是你在命令行输入的class中的主函数?</p>
+<p>Worker接收到Master发过来的载入Driver请求后, 会尝试启动一个<code>DriverRunner</code>, 由<code>DriverRunner</code>管理Driver的状态, 包括出错后自动重启等. 前者创建一个线程, 针对Driver的描述拼凑出Driver的运行指令, 之后使用该指令启动一个新的进程, 此时Master启动完毕. 那么这个Driver启动的到底是什么呢? 它用什么逻辑和后续的Executor交互呢? 答案就来自Driver的描述字符. 追本溯源, 这个描述字符最初是由<code>clientActor</code>拼凑之后传递给Master的, 而其中的命令又来自Client启动时的命令行参数. 聪明的你也许已经想出来了, 这里运行的Driver可不就是你在命令行输入的class中的主函数?</p>
 
 <h3>它包含了SparkContext, 就有了调度机制</h3>
 
 <p>可是你也许会感到疑惑. 当Master启动Executor, 并完成了Driver与Executor的”牵线搭桥”以后, 主控逻辑在哪里? 你所写就的简短的主函数怎样做到把任务切分扔到Executor上执行这个分布式运算过程的呢? 如果这是在Hadoop下, 我想你必不可少的要写一堆Job提交的shell命令, 甚至是一堆杂乱而没有章法的(对于新手来说)命令. 然而对于Spark来说, 看似”正经”的程序背后, 隐藏着SparkContext的秘密.</p>
 
-<p>是的, 就是你程序中那个简短的sc, 帮你完成了把普通程序变成分布式程序的任务. Sc是分布式程序的加工厂, 是凌乱的序列的清道夫, 是阶段pipeline的操盘手, 是任务投递的终结者. 当你在程序里敲下sc = new SparkContext()的时候, 就是上帝在创造分布式程序的曙光. 让我们从这里开始出发.</p>
+<p>是的, 就是你程序中那个简短的sc, 帮你完成了把普通程序变成分布式程序的任务. Sc是分布式程序的加工厂, 是凌乱的序列的清道夫, 是阶段pipeline的操盘手, 是任务投递的终结者. 当你在程序里敲下<code>sc = new SparkContext()</code>的时候, 就是上帝在创造分布式程序的曙光. 让我们从这里开始出发.</p>
 
-<p>SparkContext内容复杂, 名目繁多. 不过好在大部分都是用户不必理会的. 以其所处的位置来看, 位于程序入口和RDD操作之间, 无疑要负责提供大量的RDD生成函数. 从parallel开始, 它负责将用户给定的一个序列(Seq)变成RDD. 再看几乎是最常用的textFile, 负责从文件中读取出每一行作为RDD的一个元素, 及其胞弟wholeTextFiles可以读取一堆文件, 并把每一个文件看做RDD的一个元素. 之后是sequenceFile函数, 其跟textFile共享一类RDD, 只不过换了一下InputFormat. (关于这些InputFormat跟Spark的关系, 可以参见笔者的&lt;探寻从HDFS到Spark的高效数据通道：以小文件输入为案例>) 除了这些直接生成RDD的函数, 剩下的就是使用RDD跟RDD之间的合并等操作来生成新的RDD了, 比如说union函数.</p>
+<p>SparkContext内容复杂, 名目繁多. 不过好在大部分都是用户不必理会的. 以其所处的位置来看, 位于程序入口和RDD操作之间, 无疑要负责提供大量的RDD生成函数. 从parallel开始, 它负责将用户给定的一个序列(Seq)变成RDD. 再看几乎是最常用的textFile, 负责从文件中读取出每一行作为RDD的一个元素, 及其胞弟wholeTextFiles可以读取一堆文件, 并把每一个文件看做RDD的一个元素. 之后是sequenceFile函数, 其跟textFile共享一类RDD, 只不过换了一下InputFormat. (关于这些InputFormat跟Spark的关系, 可以参见笔者的<strong>探寻从HDFS到Spark的高效数据通道：以小文件输入为案例</strong>) 除了这些直接生成RDD的函数, 剩下的就是使用RDD跟RDD之间的合并等操作来生成新的RDD了, 比如说union函数.</p>
 
 <p>位于程序的入口处, 另一个重要的作用就是提供机群运行的配置. “几乎所有的”分布式程序运行信息都能从SparkContext上找到. 真是名符其实的”大管家”. 首先其构造函数就是要传入一个SparkConf, 这里面存在着大量经典的 – 也可以说是恶心的 – Java property式的参数配置, 是的, 完全无法忍受的被带歪的用法! 通过这种”简单易用”的配置方式, 很多时候你只能像福尔摩斯一样, 拿着放大镜在源码的海洋里寻找丝毫的痕迹, 然后在Ah-ha的时候仿佛找到新大陆般的找到一个能用的, 相关的配置项, 修改了它, 然后也不知道它是否还会被别的函数修改, 或者使用. 最不能忍受一个控制逻辑由多种不同的方式进行参数配置, 而且各不相同, 名称之间也毫无逻辑! 好了, 吐槽到此为止, 现在来看看到底都设置了一些啥?</p>
 
