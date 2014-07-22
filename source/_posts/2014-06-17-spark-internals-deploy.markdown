@@ -6,7 +6,7 @@ comments: true
 categories: 
 ---
 
-## 程序呓语
+**This article is just for fun, please think carefully before reading!**
 
 毫无疑问, 你将经历的是一次奇妙之旅. 在现有的分布式系统框架内, 如果非要挑选其一可以视为艺术, 那就是现在呈现在你眼前的. Spark, 在山寨风行的大数据/分布式开源市场内, 犹若火花闪现. 这永远不是终结, 而是开天辟地的第一团火光. 星星之火, 可以燎原.
 
