@@ -4,7 +4,7 @@
   <title><![CDATA[wtf AI ?]]></title>
   <link href="http://yinxusen.github.io/atom.xml" rel="self"/>
   <link href="http://yinxusen.github.io/"/>
-  <updated>2014-06-17T13:46:52+08:00</updated>
+  <updated>2014-07-22T21:07:30+08:00</updated>
   <id>http://yinxusen.github.io/</id>
   <author>
     <name><![CDATA[Xusen]]></name>
@@ -12,6 +12,170 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Spark Internals: Deploy, Scheduling and RDD]]></title>
+    <link href="http://yinxusen.github.io/blog/2014/06/17/spark-internals-deploy/"/>
+    <updated>2014-06-17T12:25:51+08:00</updated>
+    <id>http://yinxusen.github.io/blog/2014/06/17/spark-internals-deploy</id>
+    <content type="html"><![CDATA[<p><strong>This article is just for fun, please think carefully before reading!</strong></p>
+
+<p>毫无疑问, 你将经历的是一次奇妙之旅. 在现有的分布式系统框架内, 如果非要挑选其一可以视为艺术, 那就是现在呈现在你眼前的. Spark, 在山寨风行的大数据/分布式开源市场内, 犹若火花闪现. 这永远不是终结, 而是开天辟地的第一团火光. 星星之火, 可以燎原.</p>
+
+<p>然而, 我们不能过誉. 任何新技术的闪现都不是一蹴而就. 循环往复, 螺旋上升是技术的发展必由之途. 从百年之前的无线电技术发明, 到调频对调幅的憋屈之战, 未经开场便遭遇电视技术的碾压, 再到互联网的兴起无不展现一曲壮烈的华章. 对于Spark而言, 作为Apache开源社区旗下的一员悍勇, 是站在了巨象的肩膀上. 是的, 永远不容忽视Hadoop迄今为止的统治地位, 及其用于破旧立新的情怀.</p>
+
+<p>两百年前科学巨匠巴贝奇的差分机, 和爱达·拜伦天才般智慧的编程思想, 两人以穿越般的身姿错生在那个不属于他们的文艺复兴时代. 百年后, 图灵, 丘奇, 冯诺依曼等计算机先哲开拓了新时代. 新千年后十年, 端设备的极大普及以及”长长的线路”极大发展, 给世界人们带来了珍宝般的财富, 所谓的21世纪黑金 – 数据. 驰骋在这个时代, 计算机的世界越来越有海贼王的精彩 – 财富就在那儿, 去拿吧! – 一个崭新的时代.</p>
+
+<p>不同的是, 数据时代的one piece可不止一份. 或许是金钱诱惑的驱动(哪件技术的发展不是呢?), 或许带着一点贡献时代的情怀, 从21世纪头五年到现在, 计算机世界, 乃至全世界, 进入了大数据的时代.</p>
+
+<p>每个胸怀数据之志的计算机人都在寻找one piece的通路. Hadoop/Spark等兴起无不是众望所归, 生逢其时. 平心而论, 大数据处理平台等带来的”新技术”并非都是新技术, 也肯定不是最精尖的那些. 然而, 那些高端的生不逢时的技术, 只能是恰如猛虎卧荒丘.</p>
+
+<p>历经头5年Hadoop热潮的人们应该不会对此陌生: 一个由脚本语言粘合起来的世界. 我们写好各种code snippets, 打成jar包, 以shell script作为控制器, 以系统时间为salt制定输入输出路径, 串起逻辑流. SummingBird的出现或许可以减轻你的负担, 不过那也是近一两年的事情了. 在Spark的世界里, 我们要告诉大家的第一件事就是Driver.</p>
+
+<p>或许你可以把Driver看做Hadoop世界中的shell script, 但又远远不止. 可以说是”虽不中, 亦不远矣”. 对于Spark用户来说, Driver无处不在: 当你打开Spark Shell的时候, 你就已经开始跟Driver打交道了. 当你写下<code>val a = 1</code> 这种简单的语句时, Driver就已经开始为你忙活了. 当然, Spark Shell中有一些特殊的情况, 当你在真正应用代码中执行到这句时, 其实, 几乎什么都没发生. 在这里, 你可以把Driver当做第一次与Spark交流的大门.</p>
+
+<!--more-->
+
+
+<h3>Driver的初生</h3>
+
+<p>从client中来, 到executor中去</p>
+
+<p>Client是Driver初生的港湾. 当用户兴致勃勃的用手指敲下<code>./spark-submit</code>的时候, Client就在背后服务了, 并产生了一个名作<code>driverClient</code>的actorSystem. 随后从这个actorSystem中启动一个<code>clientActor</code>, 开始处理用户提交任务时的输入数据. 这些数据对于应用程序的运行来说都至关重要, 例如Master在什么地方, 运行时java url, 以及driver所需的CPU核数, 内存等. <code>clientActor</code>得到线程开始运行的时候, 会向Master获取一个masterActor的引用, 以便与其进行通信. clientActor同时会向Akka系统的事件流注册获取自己的关键事件. 随后driver与master通过Akka架构开始交流. 第一件事就是driver向master注册.</p>
+
+<p>如果当前Master在<code>ALIVE</code>的状态下(Master状态共有<code>ALIVE</code>, <code>STANDBY</code>, <code>RECOVERING</code>, <code>COMPLEING_RECOVERY</code>这四种), Master接受Driver的提交请求, 根据Driver带过来的自身描述文件创建Driver, 并加入到等待队列. 之后Master会主动执行一次<code>schedule</code>方法, 进行Driver(当然还包括Executor)真正的执行调度. 该调度包含了Driver和Executor的执行调度, 在此我们只说明Driver相关的逻辑. Driver提交相对简洁, 对所有的worker进行一下随机洗牌, 对于随机洗牌后的任意一个Worker, 遍历Driver等待队列, 如果当前Worker能够满足该Driver的执行, 则在该Worker上载入Driver. 最后是Master向clientActor汇报Driver提交成功的消息. 可想而知, 这里的成功提交只是说明Master认同了当前Driver, 但是很有可能该Driver还挂载在等候队列中没有被调度.</p>
+
+<p>Worker接收到Master发过来的载入Driver请求后, 会尝试启动一个<code>DriverRunner</code>, 由<code>DriverRunner</code>管理Driver的状态, 包括出错后自动重启等. 前者创建一个线程, 针对Driver的描述拼凑出Driver的运行指令, 之后使用该指令启动一个新的进程, 此时Master启动完毕. 那么这个Driver启动的到底是什么呢? 它用什么逻辑和后续的Executor交互呢? 答案就来自Driver的描述字符. 追本溯源, 这个描述字符最初是由<code>clientActor</code>拼凑之后传递给Master的, 而其中的命令又来自Client启动时的命令行参数. 聪明的你也许已经想出来了, 这里运行的Driver可不就是你在命令行输入的class中的主函数?</p>
+
+<h3>它包含了SparkContext, 就有了调度机制</h3>
+
+<p>可是你也许会感到疑惑. 当Master启动Executor, 并完成了Driver与Executor的”牵线搭桥”以后, 主控逻辑在哪里? 你所写就的简短的主函数怎样做到把任务切分扔到Executor上执行这个分布式运算过程的呢? 如果这是在Hadoop下, 我想你必不可少的要写一堆Job提交的shell命令, 甚至是一堆杂乱而没有章法的(对于新手来说)命令. 然而对于Spark来说, 看似”正经”的程序背后, 隐藏着SparkContext的秘密.</p>
+
+<p>是的, 就是你程序中那个简短的sc, 帮你完成了把普通程序变成分布式程序的任务. Sc是分布式程序的加工厂, 是凌乱的序列的清道夫, 是阶段pipeline的操盘手, 是任务投递的终结者. 当你在程序里敲下<code>sc = new SparkContext()</code>的时候, 就是上帝在创造分布式程序的曙光. 让我们从这里开始出发.</p>
+
+<p>SparkContext内容复杂, 名目繁多. 不过好在大部分都是用户不必理会的. 以其所处的位置来看, 位于程序入口和RDD操作之间, 无疑要负责提供大量的RDD生成函数. 从parallel开始, 它负责将用户给定的一个序列(Seq)变成RDD. 再看几乎是最常用的textFile, 负责从文件中读取出每一行作为RDD的一个元素, 及其胞弟wholeTextFiles可以读取一堆文件, 并把每一个文件看做RDD的一个元素. 之后是sequenceFile函数, 其跟textFile共享一类RDD, 只不过换了一下InputFormat. (关于这些InputFormat跟Spark的关系, 可以参见笔者的<strong>探寻从HDFS到Spark的高效数据通道：以小文件输入为案例</strong>) 除了这些直接生成RDD的函数, 剩下的就是使用RDD跟RDD之间的合并等操作来生成新的RDD了, 比如说union函数.</p>
+
+<p>位于程序的入口处, 另一个重要的作用就是提供机群运行的配置. “几乎所有的”分布式程序运行信息都能从SparkContext上找到. 真是名符其实的”大管家”. 首先其构造函数就是要传入一个SparkConf, 这里面存在着大量经典的 – 也可以说是恶心的 – Java property式的参数配置, 是的, 完全无法忍受的被带歪的用法! 通过这种”简单易用”的配置方式, 很多时候你只能像福尔摩斯一样, 拿着放大镜在源码的海洋里寻找丝毫的痕迹, 然后在Ah-ha的时候仿佛找到新大陆般的找到一个能用的, 相关的配置项, 修改了它, 然后也不知道它是否还会被别的函数修改, 或者使用. 最不能忍受一个控制逻辑由多种不同的方式进行参数配置, 而且各不相同, 名称之间也毫无逻辑! 好了, 吐槽到此为止, 现在来看看到底都设置了一些啥?</p>
+
+<p>Spark目前不支持程序程序运行后再修改配置文件的情况, SparkContext拿到一个配置文件之后是将其中的SparkConf深拷贝了一份, 当然, 调用getConf的时候也是深拷贝一份, 所以原始的是没法修改了. 在构造的时候, 默认情况下会载入当前Java property中以”spark”开头的所有配置信息. Master名称, Application名称, Jar包等这些当然不在话下. 还用到了所有Akka的配置信息, 也要装在这里. 因为用到了HDFS的hadoop client, 所以hadoop的相关配置也在SparkContext中, 只不过不与SparkConf混在一起.</p>
+
+<p>最后, 作为程序接入分布式系统的总入口, SparkContext还要负责大量的Job提交工作. 在之前的Hadoop时代是用户在shell中写好Job提交的声明. 在Spark中只要调用函数即可, 剩下的都被默默地做掉了. 而RDD在action的时候调用runJob, 其实是背后默默调用了DAG scheduler的runJob函数. 后者是什么? 且待下回分解.</p>
+
+<h3>名为DAG Scheduler者, 其实更像compiler</h3>
+
+<p>又是一大段冗长的代码. 我们还是按照功能分解吧, 最后清扫剩余的边角料. DAG Compiler, 嗯, 我觉得还是称作compiler更加妥当. 顾名思义, 就是一个关于DAG的Compiler(废话). 这里面有两个重点, 一是DAG来自哪里, 二是Compiler怎么做.</p>
+
+<p>上一节我们提到, SparkContext的runJob方法调用了DAG Compiler, 这是也唯一是调用DAG Compiler的地方(边角料先放到一边). 也就是说, DAG Compiler是主程序中一次调用RDD action的时候才会触发的, 那么构造DAG的地方肯定就在这个runJob里面啦, 我们去找找.</p>
+
+<p>DAG Compiler中的runJob方法调用了submitJob方法, 后者负责将一个全新的job递交给DAG Compiler. 在构造完job运行所必须的rdd(要处理的数据), func(每个节点处理数据的方法), partitions(要执行的partition索引), resultHandler(结果汇总函数), callSite(action调用位置)等信息后, 将job运行的消息发送给eventProcessActor.</p>
+
+<p>在SparkEnv中维护着一个actorSystem, 每个DAG Compiler初始化的时候会在该actorSystem下生成一个dagSchedulerActorSupervisor, 再由该actor负责生成eventProcessActor. eventProcessActor都有什么作用呢? 它来负责处理DAG Compiler中所有的事件, 依次有Job提交, stage取消, job取消, job组取消, 所有job取消, 增加Executor, 汇报Executor丢失, 任务开始, 任务得到结果, 任务完成, 任务集合失败, 重新提交失败的stage. 这里面个别现在还陌生的词汇, 在后续都会陆续提到.</p>
+
+<p>言归正传. eventProcessActor遇到job提交信息后, 开始处理job提交工作. (之所以这样做是为了使用AKKA带来的异步并发的特性.) 眼下到了紧要关头, 下面就是传说中的DAG Compiler部分了. 实际上整个Spark job是走了一条”由RDD到Stage, 由Stage到Task”的路. 提交job后, 从当前RDD (也称作final RDD) 出发, 开始构造第一个stage, 类似的, 这个stage又被称作final Stage. 该stage生成的过程中会上溯去寻找自己的parent stage. 如果finalStage生成没有问题, 则会调用submitStage函数. 在finalStage的parents没有执行之前, finalStage是没有道理去执行的, 因此该函数会先寻找其parents中没有执行的那些stage, 一直上溯到最顶端, 然后从上向下将stage通过submitMissingTasks提交出去.</p>
+
+<p>刚刚我们界定了DAG Compiler的起始和结束, 再强调一遍, 起始就是finalRDD开始生成finalStage, 结束就是所有的stage都顺利通过submitMissingTasks提交出去. 虽然finalStage是第一个调用new生成对象的, 但却是最后一个生成的, 因为最先生成的stage是最初始的那个(递归向上生成). 整个stage Compiler的过程是一个大的回环, 在getShuffleMapStage, newOrUsedStage, newStage, getParentStage之间来回调用. 无需赘言, 把握一点即可: 在没有shuffle的时会沿着DAG一路深度优先向上回溯, 遇到shuffle的时候会生成新的stage.
+(这里应该有张图)</p>
+
+<p>之后便是提交任务, 通过submitMissingTasks. 任务只有两种, 分别是ShuffleTask和ResultTask, 这与finalStage和shuffleStage也是相对应的. 由此可知, spark在运行时并没有所谓的”中间结果”, 也不会为”中间结果”单独启动task, 或者分配IO空间, 这点与Hadoop完全不同, 也是Spark比Hadoop快的原因之一. 根据partition的数目, stage被划分为一个个的task, 同一个stage划分出来的task被称作taskSet. DAG Compiler结束, 向TaskScheduler提交任务的时候是以TaskSet为单元提交的.</p>
+
+<h3>Task调度器</h3>
+
+<p>TaskScheduler的初生也是在SparkContext中完成. 根据用户传入的机群参数不同, 产生不同的TaskScheduler. TaskScheduler要面临许多脏细节. Spark底下支撑了多种资源调度, 机群模式, 针对不同的实现机制, 如粗粒度调度, mesos调度, yarn调度需要不同的方法. 因此, 使用SchedulerBackend来隐藏掉这个细节. 比如说传入 local, 那就预示着使用local模式下的TaskScheduler, 传入spark://xxx, 就会用到standalone模式, 传入mesos://xxx, yarn://xxx会分别用到不同的模式. 这些不同体现在SchedulerBackend上, 这样就可以保证TaskScheduler不用重复实现. 现在已有的”背靠背”集群模式有local_N, local_N, maxRetries, local-cluster_N, cores, memory, spark://, memsos://, zk://, simr://, yarn-standalone, yarn-cluster, yarn-client这几类.</p>
+
+<p>构成一个TaskScheduler的, 是TaskSchedulerImpl和一个Backend. 我们先来看看TaskSchedulerImpl的作用, 再从其调用Backend的地方看看后者做了什么. 经过构造函数的初始化, TaskSchedulerImpl先是设置了一堆相关变量, 而后调用initialize, 此时传入特定的SchedulerBackend开始做最后的初始化工作. 最后的初始化涉及Backend的插入, rootPool的建立, 调度方法的选择(FIFO还是Fair). 根据选择的调度方法建立SchedulableBuilder.</p>
+
+<p>总体来看, task调度由TaskScheduler, SchedulerBackend, TaskSetPool, SchedulableBuilder, 以及TaskSetManager构成的. 整体调度分为上下两层, 由SchedulerBuilder主管的TaskSet调度以及由TaskSetManager主管的task调度. DAGScheduler的任务分发都是以TaskSet为单位的, TaskScheduler拿到一个TaskSet会先把其挂载到activeTaskSet上, 并生成一个TaskSetManager给它. 之后会触发SchedulerBackend的reviveOffers函数. 后者向名为driverActor的actor发送ReviveOffers消息. 接收到消息后, 会调用SchedulerBackend的makeOffers函数. 这样做看起来有点绕, 而且全无必要. 但是这样做的结果是利用了AKKA的异步并发特性. 后者转而去TaskScheduler请求任务offer. 此时首先按照优先级顺序挑选出TaskSet, 这之前的优先级设置以及排序要么就按照FIFO的模式来, 要么就按照配置文件规定的FAIR模式来. 得到当前TaskSet之后, 就是从中选出每个Task运行. 选择Task的时候会注意locality的保证. Locality总共有三个等级, PROCESS_LEVEL, NODE_LEVEL, RACK_LEVEL. 剩下的最后一个没有显示写明的等级就是ANY_LEVEL. 至于当前任务在哪个等级, 要根据任务提交并且处于pending状态的时间. Pending的时间越长, locality受关注程度就会越小, 因为毕竟要保证任务可以执行. 最后如果在一个节点上找不到任何可以执行的task, 那么就会选择speculativeTask, 确保有任务执行.</p>
+
+<h3>Executor</h3>
+
+<p>Executor是切分后任务执行的母体. 每个application有一到多个executor, 而每个executor只能对应一个application/driver. Executor是由driver向master请求, 而后master去worker上寻找资源. 能够提供资源的worker在本地启动executor, 并汇报CPU核数, 内存等关键信息. 之后executor获得driver actor的地址, 两者开始直接联系. 等driver退出的时候, executor也会立即结束.</p>
+
+<p>spreadOut的目的是一个简单的调度策略. 用户设置之后可以进行round-robin调度, 而不是把所有的计算资源都集中在一小撮机器上. 一个worker是否会为一个application建立executor首先要检查application要求的每台slave最小的内存数是否可以达标, 之后会检查这个机器上有没有分配过executor, 如果有就不会再分配了.</p>
+
+<p>对worker的轮询从核数最大的开始. 每次循环向当前可分配的worker请求一个CPU核. 一轮下来如果核数已经满足要求就结束. 否则会再次进行轮询. 循环结束后, 就可以知道每个worker要分配多少core给executor, 下一步就是真生的分配: 开启executor.</p>
+
+<p>下一步就是master分别向worker和driver发出LaunchExecutor和ExecutorAdded的消息. Worker启动executor的管理者 – ExecutorRunner – 来负责启动或者杀死executor. 启动executor的阶段, 首先是生成一个工作目录, 之后抽取出其要执行的命令, 而后创建进程并设定环境变量. ExecutorRunner启动executor并等待后者结束, 不论是正常结束还是意外退出.</p>
+
+<p>ExecutorBackend是伟大的协同者. Akka作为骨架程序, 其重要性怎么说也不为过. ExecutorBackend其实就是Actor的一个子类型. 其与worker通信, 掌控者Executor的启动, 关闭等, 与Driver通信, 管理着任务接受和结果回放. Executor是一个一根筋程序: 启动并做初始化, 打开线程池等待任务接收并放入线程池运行, 最后返回结果. 这里最重要的部分其实是初始化部分. 因为序列化的任务过来还需要载入不同的jar包, 这就需要对classLoader进行处理, 以及jar包和一些必要的文件的传送, 所以初始化中就有一步是更新Executor的依赖.</p>
+
+<p>逻辑简洁的Executor/ExecutorBackend存在着大量的通信. 首先就是任务接收, 这部分由akka负责, 由名为taskDesc的类包装. 其次是消息反序列化, 这时候需要用到依赖的外部数据, 由Executor中的updateDependencies函数负责加载. 视URL的不同, 可以通过http/HDFS/ftp/file等多种不同的方式进行文件传输/共享. 成功反序列化任务后就可以执行任务. 此时任务代码可能会与local disk/HDFS/http/database等任意的方式访问外部数据, 最常见的就是HDFS的数据访问. 最后是结果回放, 分两种情况. 如果结果不大, 可以直接通过akka进行结果回送. 如果超过一定的阈值, 则Executor会联系BlockManager, 后者负责将数据写到某一个block中, 之后需要数据的线程从BlockManager请求数据.</p>
+
+<p>Executor上最终执行逻辑是Task, 这也是用户程序的载体. Task是以线程的方式在Executor的线程池中运行, 其首要方法就是定义的序列化和反序列化方法. 不同于一般的序列化, 除了代码本身的序列化之外, 还需要将当前SparkContext中的JAR和依赖文件打包传递. 注意, 这里只是传递metadata, 具体文件是否传输要靠后续的时间戳等判决. 除此之外, 最重要的方法就是runTask, 即任务的执行逻辑. Spark中的任务总共分为两类, 一是最终向Driver输出结果的ResultTask, 二是stage之间的ShuffleMapTask. 前者逻辑较为简单, 直接调用函数返回结果即可. Shuffle部分比较复杂, 其要在从ShuffleBlockManager申请一个writer, 通过这个writer可以讲自身执行的结果输出到本地的一个文件组, 文件组中的文件数目跟partition的数目一致, 称作bucket. 如果设置了文件consolidation, 那么这些文件组的文件实际上是合并成一个文件存储.</p>
+
+<h3>作为分布式语言的RDD</h3>
+
+<p>RDD存在的终极目的, 也是Matei在博士论文中不断强调的一点, 就是”数据共享”. 所有的分布式系统都在关注数据共享, 其本质也都是数据共享, 但RDD是其中最成功的一例. MapReduce/Hadoop以HDFS来共享数据, RAMCloud以内存共享数据, Redis作为持久化KV存储共享数据, Memcached以内存共享数据, 参数服务器以内存共享数据, 但是RDD的几点假设使得RDD有最佳的弹性, 可以简单的实现流处理引擎, 图处理引擎, 关系数据库引擎, 甚至机器学习引擎. RDD强悍的模拟能力来源于其数据共享的抽象与假设.</p>
+
+<p>RDD的成功关键之一就是RDD不会改变, 因此是无状态的, 这就给予RDD简单的容错机制, lineage容错.</p>
+
+<p>RDD成功的关键之二就是RDD的粗粒度, 批量处理的特性, 这使得事情变得简单.</p>
+
+<p>RDD的成功关键之三, 就是其函数复合的能力, 这是其”内存计算”的本质所在. 如同10多年前的X100关系数据库系统, RDD其实实现的是cache级别的数据计算外加内存作为cache.</p>
+
+<p>RDD成功关键之四, 是其partition可制定的特性. 不过, 其他系统也支持数据划分, 但是没有一个系统的数据划分指定如同spark这样简单. Partition的存在, 简化了很多设计, 也给更优质的”数据本地性”带来可能.</p>
+
+<p>RDD还可以处理straggler的存在, 通过选择久未完成的任务重做.</p>
+
+<p>下面来看几个经典的RDD设计, 来明白为什么RDD的设计算作”艺术”.
+以数据共享为导向的RDD
+几种颇具影响力的RDD设计, 如MapRDD, 笛卡尔积RDD, AllReduceRDD, slideRDD…</p>
+
+<p>来看看MappedRDD, 作为咱们的”开胃菜”. 从MappedRDD可以看出来, 有两个方法在RDD中是必须实现的. 第一个就是getPartitions方法, 这个方法决定了你如何找到每个数据分片. 第二个方法是compute方法, 该方法告诉你每个partition做什么样的处理以得到当前的RDD. 对于MappedRDD而言, 它会享有其双亲的partition分配. 而就compute而言, 它将UDF作用于RDD分片中的每个元素. (为什么MappedRDD有可能改变partition而MapValuesRDD不会? 有点搞不明白.)</p>
+
+<p>作为fault-tolerance的RDD, 但是同时也有缺点
+LLC Cache中的RDD (pipeline), 内存中的RDD</p>
+
+<h3>Spark提供的多种启动方式</h3>
+
+<p>撇去Yarn/Mesos/Tachyon这类复杂的资源管理, 单独启动一个standalone的spark集群是非常容易的, 而且用不了那么复杂的脚本. “All in one”的方式是sbt assembly得到一个整体的jar包, 所有的内容都在这里了, 包括scala的库函数. 当然, java最原生的那些包肯定不能再包裹在里面了(那就没完没了了). 有了All in one的jar包, 指定其到classpath中去, 就可以随意调用spark的各个模块.</p>
+
+<p>不过assembly这个包也稍嫌太大了. 我们现在给spark集群“瘦身”. 实际上, 只需要core/package一下, 拿到core.jar及其相应的第三方依赖就可以启动spark集群了. 其他的所有模块都可以看做spark集群的应用, 启动driver的时候需要通过&mdash;jar变量指定这些jar包, 然后spark集群其他的worker会去下载相应的依赖库.</p>
+
+<p>Master/Worker启动较为简单, 脚本调用java启动相应的类, 作为后台守护进程. 这个CS架构模式建立起来之后, Master就等待应用提交. 值得一提的是为了提高分布式系统的鲁棒性, 会有一个elect leader的过程. 启动的时候, Master会建立一个actor, 作为Leader election的代理. 这个actor向master actor发送ElectedLeader的信息. 选主的过程是由ZooKeeper来管理的. (这里的fault tolerance还没完全掌握.)</p>
+
+<p>Master监听在适当的端口上, 默认是7077. 剩下的就是Application向Master注册了. Driver正是Application的载体, 也是Application向Master注册的产物. 这里存在着两种方式启动Driver. 以Spark内部自带的程序为例, 可以通过spark-class启动你的Application, 这是, 当前机器就成为了你的Driver, 其负责DAG Scheduling, task scheduling, 以及错误处理, 结果收集等种种问题. 然而, 这种场景下会有一些问题. 通常而言, Master/Worker都启动在云端, 或者你的服务器集群, 而提交工作的地点往往是你的开发机. 两者存在着严重的网络通信状况不友好的情况, 另外, 自己的开发机也存在着内存不足, 处理能力有限等约束. Driver作为分布式程序运行的”管家”, 这种严格限制管家能力的做法确实不恰当的. 因此, 通常会使用第二种注册方法.</p>
+
+<p>使用spark-submit脚本, 本地会启动一个deploy进程, 该进程负责联系Master. 与之前不同, 该进程向Master请求寻找一个Worker作为Driver的host机器. 意即, Driver不在开发机本身, 而是在集群中的某个机器上. Worker上启动一个Driver, 这个想法跟启动一个Executor一样自然, 而且实现也确实如此. Master的调度运行的时候会率先调度所有的Driver请求, Worker接收到Driver的请求时, 会启动一个DriverRunner线程, 该线程负责启动一个Driver进程, 该进程将相应的class/jar下载到本地, 之后根据客户端上传的Driver命令行启动Driver. 不过, 既然Driver已经在云端启动, 那么怎么将最后的结果返回呢? (log打印在哪里? 结果返回到何处?)</p>
+
+<p>Spark-submit
+Compute-classpath
+等等</p>
+
+<ul>
+<li><p>背景: 程序呓语</p></li>
+<li><p>用户程序与driver</p></li>
+<li><p>Driver的初生</p></li>
+<li><p>Spark独立式资源调度: 从worker到executor</p></li>
+<li><p>Driver与master</p></li>
+<li><p>Master与worker</p></li>
+<li><p>Worker到executor</p></li>
+<li><p>Driver与executor</p></li>
+<li><p>Spark的信息总线</p></li>
+<li><p>Spark DAG编译: 从程序片段到实际任务</p></li>
+<li><p>Spark RDD与lineage容错</p></li>
+<li><p>Transformation与action</p></li>
+<li><p>RDD与stage划分</p></li>
+<li><p>Stage中task划分</p></li>
+<li><p>task序列化</p></li>
+<li><p>DAG级别容错</p></li>
+<li><p>Spark任务调度: 从实际任务到多机运行时</p></li>
+<li><p>Sparrow: 支持每秒百万级别的任务投递</p></li>
+<li><p>Task反序列化</p></li>
+<li><p>任务级别容错</p></li>
+<li><p>背后的故事: Akka</p></li>
+<li><p>Spark RDD: 一种全新的分布式编程语言</p></li>
+<li><p>函数式编程与monad</p></li>
+<li><p>RDD transformation与复合函数</p></li>
+<li><p>Iterator的诡计</p></li>
+<li><p>Spark与Hadoop的对比分析</p></li>
+<li><p>Driver之于shell coordinator</p></li>
+<li><p>RDD transformation/action 之于map/reduce</p></li>
+<li><p>复合函数之于HDFS数据交换</p></li>
+<li><p>结语</p></li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Crazy Small Files in HDFS]]></title>
