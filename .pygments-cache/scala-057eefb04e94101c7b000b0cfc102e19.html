@@ -1,0 +1,26 @@
+<div class="highlight"><pre><span class="k">def</span> <span class="n">findBinsForLevel</span><span class="o">(</span><span class="n">labeledPoint</span><span class="k">:</span> <span class="kt">LabeledPoint</span><span class="o">)</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+  <span class="c1">// Calculate bin index and label per feature per node.</span>
+  <span class="k">val</span> <span class="n">arr</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">](</span><span class="mi">1</span> <span class="o">+</span> <span class="o">(</span><span class="n">numFeatures</span> <span class="o">*</span> <span class="n">numNodes</span><span class="o">))</span>
+  <span class="n">arr</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span> <span class="k">=</span> <span class="n">labeledPoint</span><span class="o">.</span><span class="n">label</span>
+  <span class="k">var</span> <span class="n">nodeIndex</span> <span class="k">=</span> <span class="mi">0</span>
+  <span class="k">while</span> <span class="o">(</span><span class="n">nodeIndex</span> <span class="o">&lt;</span> <span class="n">numNodes</span><span class="o">)</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="n">parentFilters</span> <span class="k">=</span> <span class="n">findParentFilters</span><span class="o">(</span><span class="n">nodeIndex</span><span class="o">)</span>
+    <span class="c1">// Find out whether the sample qualifies for the particular node.</span>
+    <span class="k">val</span> <span class="n">sampleValid</span> <span class="k">=</span> <span class="n">isSampleValid</span><span class="o">(</span><span class="n">parentFilters</span><span class="o">,</span> <span class="n">labeledPoint</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">shift</span> <span class="k">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">numFeatures</span> <span class="o">*</span> <span class="n">nodeIndex</span>
+    <span class="k">if</span> <span class="o">(!</span><span class="n">sampleValid</span><span class="o">)</span> <span class="o">{</span>
+      <span class="c1">// Mark one bin as -1 is sufficient.</span>
+      <span class="n">arr</span><span class="o">(</span><span class="n">shift</span><span class="o">)</span> <span class="k">=</span> <span class="nc">InvalidBinIndex</span>
+    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+      <span class="k">var</span> <span class="n">featureIndex</span> <span class="k">=</span> <span class="mi">0</span>
+      <span class="k">while</span> <span class="o">(</span><span class="n">featureIndex</span> <span class="o">&lt;</span> <span class="n">numFeatures</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">val</span> <span class="n">isFeatureContinuous</span> <span class="k">=</span> <span class="n">strategy</span><span class="o">.</span><span class="n">categoricalFeaturesInfo</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">).</span><span class="n">isEmpty</span>
+        <span class="n">arr</span><span class="o">(</span><span class="n">shift</span> <span class="o">+</span> <span class="n">featureIndex</span><span class="o">)</span> <span class="k">=</span> <span class="n">findBin</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">,</span> <span class="n">labeledPoint</span><span class="o">,</span><span class="n">isFeatureContinuous</span><span class="o">)</span>
+        <span class="n">featureIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="n">nodeIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+  <span class="o">}</span>
+  <span class="n">arr</span>
+<span class="o">}</span>
+</pre></div>

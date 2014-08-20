@@ -1,0 +1,20 @@
+<div class="highlight"><pre> <span class="k">def</span> <span class="n">train</span><span class="o">(</span><span class="n">input</span><span class="k">:</span> <span class="kt">RDD</span><span class="o">[</span><span class="kt">LabeledPoint</span><span class="o">])</span><span class="k">:</span> <span class="kt">DecisionTreeModel</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="o">(</span><span class="n">splits</span><span class="o">,</span> <span class="n">bins</span><span class="o">)</span> <span class="k">=</span> <span class="nc">DecisionTree</span><span class="o">.</span><span class="n">findSplitsBins</span><span class="o">(</span><span class="n">retaggedInput</span><span class="o">,</span> <span class="n">metadata</span><span class="o">)</span>
+    <span class="k">val</span> <span class="n">nodes</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Array</span><span class="o">[</span><span class="kt">Node</span><span class="o">](</span><span class="n">maxNumNodes</span><span class="o">)</span>
+
+    <span class="k">var</span> <span class="n">level</span> <span class="k">=</span> <span class="mi">0</span>
+    <span class="k">var</span> <span class="n">break</span> <span class="k">=</span> <span class="kc">false</span>
+    <span class="k">while</span> <span class="o">(</span><span class="n">level</span> <span class="o">&lt;=</span> <span class="n">maxDepth</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">break</span><span class="o">)</span> <span class="o">{</span>
+      <span class="k">val</span> <span class="n">splitsStatsForLevel</span> <span class="k">=</span> <span class="nc">DecisionTree</span><span class="o">.</span><span class="n">findBestSplits</span><span class="o">(</span><span class="n">treeInput</span><span class="o">,</span> <span class="n">parentImpurities</span><span class="o">,</span>
+        <span class="n">metadata</span><span class="o">,</span> <span class="n">level</span><span class="o">,</span> <span class="n">nodes</span><span class="o">,</span> <span class="n">splits</span><span class="o">,</span> <span class="n">bins</span><span class="o">,</span> <span class="n">maxLevelForSingleGroup</span><span class="o">,</span> <span class="n">timer</span><span class="o">)</span>
+      <span class="k">for</span> <span class="o">((</span><span class="n">nodeSplitStats</span><span class="o">,</span> <span class="n">index</span><span class="o">)</span> <span class="k">&lt;-</span> <span class="n">splitsStatsForLevel</span><span class="o">.</span><span class="n">view</span><span class="o">.</span><span class="n">zipWithIndex</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">extractNodeInfo</span><span class="o">(</span><span class="n">nodeSplitStats</span><span class="o">,</span> <span class="n">level</span><span class="o">,</span> <span class="n">index</span><span class="o">,</span> <span class="n">nodes</span><span class="o">)</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="k">val</span> <span class="n">topNode</span> <span class="k">=</span> <span class="n">nodes</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+    <span class="n">topNode</span><span class="o">.</span><span class="n">build</span><span class="o">(</span><span class="n">nodes</span><span class="o">)</span>
+
+    <span class="k">new</span> <span class="nc">DecisionTreeModel</span><span class="o">(</span><span class="n">topNode</span><span class="o">,</span> <span class="n">strategy</span><span class="o">.</span><span class="n">algo</span><span class="o">)</span>
+  <span class="o">}</span>
+</pre></div>

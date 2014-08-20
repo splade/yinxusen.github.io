@@ -4,40 +4,44 @@
         <loc>
             http://yinxusen.github.io/blog/2014/01/17/petuum-source-code-read-and-initial-test-result/
         </loc>
-        <lastmod>2014-07-22T18:42:23+08:00</lastmod>
+        <lastmod>2014-08-20T04:29:45+08:00</lastmod>
     </url>
     <url>
         <loc>http://yinxusen.github.io/blog/2014/01/17/adl45-meeting-record/</loc>
-        <lastmod>2014-07-22T18:42:23+08:00</lastmod>
+        <lastmod>2014-08-20T04:29:45+08:00</lastmod>
     </url>
     <url>
         <loc>
             http://yinxusen.github.io/blog/2014/01/18/how-to-use-spark-for-ml-algorithms-and-why/
         </loc>
-        <lastmod>2014-07-22T18:42:23+08:00</lastmod>
+        <lastmod>2014-08-20T04:29:45+08:00</lastmod>
     </url>
     <url>
         <loc>http://yinxusen.github.io/blog/2014/03/11/crazy-small-files-in-hdfs/</loc>
-        <lastmod>2014-07-22T18:42:23+08:00</lastmod>
+        <lastmod>2014-08-20T04:29:45+08:00</lastmod>
     </url>
     <url>
         <loc>http://yinxusen.github.io/blog/2014/06/17/spark-internals-deploy/</loc>
-        <lastmod>2014-07-22T19:57:20+08:00</lastmod>
+        <lastmod>2014-08-20T04:29:45+08:00</lastmod>
+    </url>
+    <url>
+        <loc>http://yinxusen.github.io/blog/2014/08/20/mllib-sparsity/</loc>
+        <lastmod>2014-08-20T19:03:54+08:00</lastmod>
     </url>
     <url>
         <loc>http://yinxusen.github.io/blog/archives/</loc>
-        <lastmod>2014-07-22T19:57:20+08:00</lastmod>
+        <lastmod>2014-08-20T19:03:54+08:00</lastmod>
     </url>
     <url>
         <loc>http://yinxusen.github.io/robots.txt</loc>
-        <lastmod>2014-07-22T18:42:23+08:00</lastmod>
+        <lastmod>2014-08-20T04:29:45+08:00</lastmod>
     </url>
     <url>
         <loc>http://yinxusen.github.io/aboutme/</loc>
-        <lastmod>2014-07-22T18:42:23+08:00</lastmod>
+        <lastmod>2014-08-20T04:29:45+08:00</lastmod>
     </url>
     <url>
         <loc>http://yinxusen.github.io/</loc>
-        <lastmod>2014-07-22T19:57:20+08:00</lastmod>
+        <lastmod>2014-08-20T19:03:54+08:00</lastmod>
     </url>
 </urlset>

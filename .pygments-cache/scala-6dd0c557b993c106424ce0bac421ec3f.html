@@ -1,0 +1,42 @@
+<div class="highlight"><pre><span class="k">def</span> <span class="n">binsToBestSplit</span><span class="o">(</span>
+    <span class="n">binData</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">],</span>
+    <span class="n">nodeImpurity</span><span class="k">:</span> <span class="kt">Double</span><span class="o">)</span><span class="k">:</span> <span class="o">(</span><span class="kt">Split</span><span class="o">,</span> <span class="kt">InformationGainStats</span><span class="o">)</span> <span class="k">=</span> <span class="o">{</span>
+
+  <span class="n">logDebug</span><span class="o">(</span><span class="s">&quot;node impurity = &quot;</span> <span class="o">+</span> <span class="n">nodeImpurity</span><span class="o">)</span>
+
+  <span class="c1">// Extract left right node aggregates.</span>
+  <span class="k">val</span> <span class="o">(</span><span class="n">leftNodeAgg</span><span class="o">,</span> <span class="n">rightNodeAgg</span><span class="o">)</span> <span class="k">=</span> <span class="n">extractLeftRightNodeAggregates</span><span class="o">(</span><span class="n">binData</span><span class="o">)</span>
+
+  <span class="c1">// Calculate gains for all splits.</span>
+  <span class="k">val</span> <span class="n">gains</span> <span class="k">=</span> <span class="n">calculateGainsForAllNodeSplits</span><span class="o">(</span><span class="n">leftNodeAgg</span><span class="o">,</span> <span class="n">rightNodeAgg</span><span class="o">,</span> <span class="n">nodeImpurity</span><span class="o">)</span>
+
+  <span class="k">val</span> <span class="o">(</span><span class="n">bestFeatureIndex</span><span class="o">,</span><span class="n">bestSplitIndex</span><span class="o">,</span> <span class="n">gainStats</span><span class="o">)</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="c1">// Initialize with infeasible values.</span>
+    <span class="k">var</span> <span class="n">bestFeatureIndex</span> <span class="k">=</span> <span class="nc">Int</span><span class="o">.</span><span class="nc">MinValue</span>
+    <span class="k">var</span> <span class="n">bestSplitIndex</span> <span class="k">=</span> <span class="nc">Int</span><span class="o">.</span><span class="nc">MinValue</span>
+    <span class="k">var</span> <span class="n">bestGainStats</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">InformationGainStats</span><span class="o">(</span><span class="nc">Double</span><span class="o">.</span><span class="nc">MinValue</span><span class="o">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">)</span>
+    <span class="c1">// Iterate over features.</span>
+    <span class="k">var</span> <span class="n">featureIndex</span> <span class="k">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="o">(</span><span class="n">featureIndex</span> <span class="o">&lt;</span> <span class="n">numFeatures</span><span class="o">)</span> <span class="o">{</span>
+      <span class="c1">// Iterate over all splits.</span>
+      <span class="k">var</span> <span class="n">splitIndex</span> <span class="k">=</span> <span class="mi">0</span>
+      <span class="k">while</span> <span class="o">(</span><span class="n">splitIndex</span> <span class="o">&lt;</span> <span class="n">numBins</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">val</span> <span class="n">gainStats</span> <span class="k">=</span> <span class="n">gains</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)(</span><span class="n">splitIndex</span><span class="o">)</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">gainStats</span><span class="o">.</span><span class="n">gain</span> <span class="o">&gt;</span> <span class="n">bestGainStats</span><span class="o">.</span><span class="n">gain</span><span class="o">)</span> <span class="o">{</span>
+          <span class="n">bestGainStats</span> <span class="k">=</span> <span class="n">gainStats</span>
+          <span class="n">bestFeatureIndex</span> <span class="k">=</span> <span class="n">featureIndex</span>
+          <span class="n">bestSplitIndex</span> <span class="k">=</span> <span class="n">splitIndex</span>
+        <span class="o">}</span>
+        <span class="n">splitIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="o">}</span>
+      <span class="n">featureIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="o">}</span>
+    <span class="o">(</span><span class="n">bestFeatureIndex</span><span class="o">,</span> <span class="n">bestSplitIndex</span><span class="o">,</span> <span class="n">bestGainStats</span><span class="o">)</span>
+  <span class="o">}</span>
+
+  <span class="n">logDebug</span><span class="o">(</span><span class="s">&quot;best split bin = &quot;</span> <span class="o">+</span> <span class="n">bins</span><span class="o">(</span><span class="n">bestFeatureIndex</span><span class="o">)(</span><span class="n">bestSplitIndex</span><span class="o">))</span>
+  <span class="n">logDebug</span><span class="o">(</span><span class="s">&quot;best split bin = &quot;</span> <span class="o">+</span> <span class="n">splits</span><span class="o">(</span><span class="n">bestFeatureIndex</span><span class="o">)(</span><span class="n">bestSplitIndex</span><span class="o">))</span>
+
+  <span class="o">(</span><span class="n">splits</span><span class="o">(</span><span class="n">bestFeatureIndex</span><span class="o">)(</span><span class="n">bestSplitIndex</span><span class="o">),</span> <span class="n">gainStats</span><span class="o">)</span>
+<span class="o">}</span>
+</pre></div>

@@ -1,0 +1,29 @@
+<div class="highlight"><pre><span class="k">def</span> <span class="n">regressionBinSeqOp</span><span class="o">(</span><span class="n">arr</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">],</span> <span class="n">agg</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">])</span> <span class="o">{</span>
+  <span class="c1">// Iterate over all nodes.</span>
+  <span class="k">var</span> <span class="n">nodeIndex</span> <span class="k">=</span> <span class="mi">0</span>
+  <span class="k">while</span> <span class="o">(</span><span class="n">nodeIndex</span> <span class="o">&lt;</span> <span class="n">numNodes</span><span class="o">)</span> <span class="o">{</span>
+    <span class="c1">// Check whether the instance was valid for this nodeIndex.</span>
+    <span class="k">val</span> <span class="n">validSignalIndex</span> <span class="k">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">numFeatures</span> <span class="o">*</span> <span class="n">nodeIndex</span>
+    <span class="k">val</span> <span class="n">isSampleValidForNode</span> <span class="k">=</span> <span class="n">arr</span><span class="o">(</span><span class="n">validSignalIndex</span><span class="o">)</span> <span class="o">!=</span> <span class="nc">InvalidBinIndex</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">isSampleValidForNode</span><span class="o">)</span> <span class="o">{</span>
+      <span class="c1">// actual class label</span>
+      <span class="k">val</span> <span class="n">label</span> <span class="k">=</span> <span class="n">arr</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+      <span class="c1">// Iterate over all features.</span>
+      <span class="k">var</span> <span class="n">featureIndex</span> <span class="k">=</span> <span class="mi">0</span>
+      <span class="k">while</span> <span class="o">(</span><span class="n">featureIndex</span> <span class="o">&lt;</span> <span class="n">numFeatures</span><span class="o">)</span> <span class="o">{</span>
+        <span class="c1">// Find the bin index for this feature.</span>
+        <span class="k">val</span> <span class="n">arrShift</span> <span class="k">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">numFeatures</span> <span class="o">*</span> <span class="n">nodeIndex</span>
+        <span class="k">val</span> <span class="n">arrIndex</span> <span class="k">=</span> <span class="n">arrShift</span> <span class="o">+</span> <span class="n">featureIndex</span>
+        <span class="c1">// Update count, sum, and sum^2 for one bin.</span>
+        <span class="k">val</span> <span class="n">aggShift</span> <span class="k">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">numBins</span> <span class="o">*</span> <span class="n">numFeatures</span> <span class="o">*</span> <span class="n">nodeIndex</span>
+        <span class="k">val</span> <span class="n">aggIndex</span> <span class="k">=</span> <span class="n">aggShift</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">featureIndex</span> <span class="o">*</span> <span class="n">numBins</span> <span class="o">+</span> <span class="n">arr</span><span class="o">(</span><span class="n">arrIndex</span><span class="o">).</span><span class="n">toInt</span> <span class="o">*</span> <span class="mi">3</span>
+        <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span><span class="o">)</span> <span class="k">=</span> <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span><span class="o">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="o">)</span> <span class="k">=</span> <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="o">)</span> <span class="o">+</span> <span class="n">label</span>
+        <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span> <span class="o">+</span> <span class="mi">2</span><span class="o">)</span> <span class="k">=</span> <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span> <span class="o">+</span> <span class="mi">2</span><span class="o">)</span> <span class="o">+</span> <span class="n">label</span><span class="o">*</span><span class="n">label</span>
+        <span class="n">featureIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="n">nodeIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>

@@ -1,0 +1,10 @@
+<div class="highlight"><pre><span class="k">def</span> <span class="n">binCombOp</span><span class="o">(</span><span class="n">agg1</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">],</span> <span class="n">agg2</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">])</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+  <span class="k">var</span> <span class="n">index</span> <span class="k">=</span> <span class="mi">0</span>
+  <span class="k">val</span> <span class="n">combinedAggregate</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">](</span><span class="n">binAggregateLength</span><span class="o">)</span>
+  <span class="k">while</span> <span class="o">(</span><span class="n">index</span> <span class="o">&lt;</span> <span class="n">binAggregateLength</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">combinedAggregate</span><span class="o">(</span><span class="n">index</span><span class="o">)</span> <span class="k">=</span> <span class="n">agg1</span><span class="o">(</span><span class="n">index</span><span class="o">)</span> <span class="o">+</span> <span class="n">agg2</span><span class="o">(</span><span class="n">index</span><span class="o">)</span>
+    <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+  <span class="o">}</span>
+  <span class="n">combinedAggregate</span>
+<span class="o">}</span>
+</pre></div>

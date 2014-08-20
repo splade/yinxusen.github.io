@@ -1,0 +1,17 @@
+<div class="highlight"><pre><span class="k">val</span> <span class="n">binMappedRDD</span> <span class="k">=</span> <span class="n">input</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">x</span> <span class="k">=&gt;</span> <span class="n">findBinsForLevel</span><span class="o">(</span><span class="n">x</span><span class="o">))</span>
+
+<span class="k">val</span> <span class="n">binAggregates</span> <span class="k">=</span> <span class="o">{</span>
+  <span class="n">binMappedRDD</span><span class="o">.</span><span class="n">aggregate</span><span class="o">(</span><span class="nc">Array</span><span class="o">.</span><span class="n">fill</span><span class="o">[</span><span class="kt">Double</span><span class="o">](</span><span class="n">binAggregateLength</span><span class="o">)(</span><span class="mi">0</span><span class="o">))(</span><span class="n">binSeqOp</span><span class="o">,</span><span class="n">binCombOp</span><span class="o">)</span>
+<span class="o">}</span>
+
+<span class="k">def</span> <span class="n">getBinDataForNode</span><span class="o">(</span><span class="n">node</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+  <span class="k">if</span> <span class="o">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">isClassification</span><span class="o">)</span> <span class="o">{</span> 
+    <span class="o">???</span>
+  <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+    <span class="c1">// Regression</span>
+    <span class="k">val</span> <span class="n">shift</span> <span class="k">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">node</span> <span class="o">*</span> <span class="n">numBins</span> <span class="o">*</span> <span class="n">numFeatures</span>
+    <span class="k">val</span> <span class="n">binsForNode</span> <span class="k">=</span> <span class="n">binAggregates</span><span class="o">.</span><span class="n">slice</span><span class="o">(</span><span class="n">shift</span><span class="o">,</span> <span class="n">shift</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">numBins</span> <span class="o">*</span> <span class="n">numFeatures</span><span class="o">)</span>
+    <span class="n">binsForNode</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</pre></div>
