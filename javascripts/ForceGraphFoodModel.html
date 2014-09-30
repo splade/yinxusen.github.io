@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+.link {
+  stroke: #333;
+  opacity: .4;
+}
+
+.node circle {
+  cursor: move;
+  fill: #3366FF;
+  stroke: #3399FF;
+  stroke-width: 2px;
+  opacity: .6;
+}
+
+.node.fixed circle {
+  fill: red;
+  stroke: #FF3300;
+  stroke-width: 4px;
+  opacity: .9;
+}
+
+.node.fixed text {
+  fill: red;
+  font: 16px sans-serif;
+  font-weight: bold;
+}
+
+.node text {
+  fill: #0000CC;
+  pointer-events: none;
+  font: 14px sans-serif;
+}
+
+</style>
+<body>
+</body>
+<script src="libs/d3.v3.min.js"></script>
+<script>
+
+var width = 1500,
+    height = 1000
+
+var dbs = ["jts"]
+
+var svg = d3.select("div").data(dbs).enter().append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+var force = d3.layout.force()
+    .gravity(.10)
+    .distance(200)
+    .charge(-200)
+    .size([width, height]);
+
+var drag = force.drag()
+    .on("dragstart", dragstart);
+
+function dblclick(d) {
+  d3.select(this).classed("fixed", d.fixed = false);
+}
+
+function dragstart(d) {
+  d3.select(this).classed("fixed", d.fixed = true);
+}
+
+d3.json("../data/jts.food.json", function(error, json) {
+  force
+      .nodes(json.nodes)
+      .links(json.links)
+      .start();
+
+  var color = d3.scale.category20();
+
+  var scale = d3.scale.linear()
+    .domain([d3.min(json.links, function(d) { return d.weight; }), d3.max(json.links, function(d) { return d.weight; })])
+    .range([0, 5]);
+
+  var link = svg.selectAll(".link")
+      .data(json.links)
+    .enter().append("line")
+      .attr("class", "link")
+      .style("stroke-width", function(d) { return scale(d.weight) });
+
+  var node = svg.selectAll(".node")
+      .data(json.nodes)
+    .enter().append("g")
+      .attr("class", "node")
+      .on("dblclick", dblclick)
+      .call(drag);
+
+  node.append("circle")
+    .attr("r", 8);
+	  
+
+  node.append("text")
+      .attr("dx", 12)
+      .attr("dy", ".35em")
+      .text(function(d) { return d.name });
+
+  force.on("tick", function() {
+    link.attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+    node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+  });
+});
+
+</script>
