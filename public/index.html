@@ -1,0 +1,610 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>wtf AI ?</title>
+  <meta name="author" content="Xusen">
+
+  
+  <meta name="description" content="大家好，2015年四月份会在小象学院开一门数据分析的课程，名称暂定为《实践机器学习算法详解及工程实现》。中文名很长，我擅自改了个英文名字，Applied Machine Learning and Implementation. 如果喜欢，还请选课，希望AMLI能伴你度过一个而快乐的春天。:) ">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yinxusen.github.io">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="wtf AI ?" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">wtf AI ?</a></h1>
+  
+    <h2>Gee...  I don't know what AI means...</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yinxusen.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/aboutme">About Me</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div class="blog-index">
+  
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2015/02/28/new-course-applied-machine-learning-and-implementation/">New Course: Applied Machine Learning and Implementation</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2015-02-28T00:34:02+08:00" pubdate data-updated="true">Feb 28<span>th</span>, 2015</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>大家好，2015年四月份会在<a href="http://www.chinahadoop.cn/">小象学院</a>开一门数据分析的课程，名称暂定为《实践机器学习算法详解及工程实现》。中文名很长，我擅自改了个英文名字，Applied Machine Learning and Implementation. 如果喜欢，还请选课，希望AMLI能伴你度过一个而快乐的春天。:)</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2015/02/28/new-course-applied-machine-learning-and-implementation/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/08/20/mllib-sparsity/">Mllib Sparsity</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-08-20T00:00:00+08:00" pubdate data-updated="true"></time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h1>MLlib：归约数据量</h1>
+
+<h2>以及发发牢骚 :&ndash;)</h2>
+
+<h2>Table of contents</h2>
+
+<p>[TOC]</p>
+
+<h2>稀疏向量的支持：自然数据中的稀疏属性的挖掘和支持</h2>
+
+<p>现在来探索如何在大数据中归约数据量，降低计算复杂度。本文两侧分治之，其一，通过发掘和支持自然数据中的稀疏属性，算作自然资源的挖掘；其二，通过对现有数据的聚集归约，视为人工数据聚合。这两种方法在 MLlib 中均得到了很好的体现。本篇旨在剖析 MLlib 现有的两类数据归约方法，权当为后来的机器学习分布式算法抛砖引玉。</p>
+
+<p>自从 Spark 1.0 以来，MLlib 开始透过<code>Vector</code>接口支持稀疏向量。并在下层以 Breeze 承接计算主体。这一改变影响巨大，首先现有的几乎所有算法都遭到了随之而来的改动。从用于矩阵分解的 ALS、SVD，到所有的线性模型，乃至朴素贝叶斯和 K 均值算法都在改动之列。新加入的决策树算法因其起步晚，所以一开始就享受到稀疏向量带来的优势。甚至可以说，正是稀疏矩阵的加入，让 MLlib 由一个 demo 式的玩具，变成了可以工业应用的平台。</p>
+
+<h3>稀疏性</h3>
+
+<p>稀疏性是自然世界的本质属性。在大数据时代的数据几乎是稀疏数据的天下。稀疏性来源于两个方面，一是数据“基”非常大，即数据空间之大；二是数据“点”非常少，即可观测的性征少。N-Gram 是前者，数据空间大小以全体文字数目为幂次，而世界上能出现的N个文字的组合却远少于这个值。点评数据是后者，由于长尾因素，大多数用户能点评的数据非常有限，因此仅填充了“用户——物品”矩阵很少的一部分。</p>
+
+<p>从统计学家，或者机器学习人员的角度来看，现实世界的数据等于稀疏数据（或者低秩数据）加上噪声。而这正是机器学习算法能够成功过的一个重要基础。统计学家和机器学习人员的一个重要工作就是在貌似繁杂的数据中找到那些简单的构造因素。有点类似于牛顿三定律，不论世界多么复杂，物质作用多么繁复，只要是在经典力学的范围内，就要遵循三定律。三定律就是世界的模型，由此构成稀疏的世界。一幅图像是稠密的，其内部充斥着 RGB 三原色的组合，并且大都不为零。一个神经讯号是稠密的，在时间线上连续存在。对于这种数据，我们可以通过小波变换或者傅里叶变换找到它稀疏的一面。</p>
+
+<p>如果把数据点除以数据空间作为数据密度，那么 Netflix 竞赛数据的密度只有 1.17%，rcv1 数据集的数据密度仅 0.15%，近些年来所用到的欺诈检测的数据平均密度仅有 10%，而且这些数据为了提取更多的特征，通常都人为增大了欺诈数据的条目，即是有偏的！现在估算一下你手头数据的数据密度，是否要考虑稀疏性了呢？那么应该怎么做？核心就是要善于发现和利用这种属性。Spark 1.0 加入了稀疏向量，正是往实际应用迈进了临门一脚。</p>
+
+<p>有了稀疏向量只是一个基础，说明我们有能力发掘现实世界的稀疏性了。然而下一步更重要的是，如何在机器学习算法中更好的利用这种性质？要知道，稀疏性无处不在，但又非常脆弱，很多操作就能破坏它。例如向量加法，两个稀疏向量相加的结果会比之前的向量稠密一些，多个向量相加的结果就完全是稠密矩阵了。因此，善于利用利于保持稀疏性的线性代数运算是其中的关键。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/08/20/mllib-sparsity/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/06/17/spark-internals-deploy/">Spark Internals: Deploy, Scheduling and RDD</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-06-17T12:25:51+08:00" pubdate data-updated="true">Jun 17<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><strong>This article is just for fun, please think carefully before reading!</strong></p>
+
+<p>毫无疑问, 你将经历的是一次奇妙之旅. 在现有的分布式系统框架内, 如果非要挑选其一可以视为艺术, 那就是现在呈现在你眼前的. Spark, 在山寨风行的大数据/分布式开源市场内, 犹若火花闪现. 这永远不是终结, 而是开天辟地的第一团火光. 星星之火, 可以燎原.</p>
+
+<p>然而, 我们不能过誉. 任何新技术的闪现都不是一蹴而就. 循环往复, 螺旋上升是技术的发展必由之途. 从百年之前的无线电技术发明, 到调频对调幅的憋屈之战, 未经开场便遭遇电视技术的碾压, 再到互联网的兴起无不展现一曲壮烈的华章. 对于Spark而言, 作为Apache开源社区旗下的一员悍勇, 是站在了巨象的肩膀上. 是的, 永远不容忽视Hadoop迄今为止的统治地位, 及其用于破旧立新的情怀.</p>
+
+<p>两百年前科学巨匠巴贝奇的差分机, 和爱达·拜伦天才般智慧的编程思想, 两人以穿越般的身姿错生在那个不属于他们的文艺复兴时代. 百年后, 图灵, 丘奇, 冯诺依曼等计算机先哲开拓了新时代. 新千年后十年, 端设备的极大普及以及”长长的线路”极大发展, 给世界人们带来了珍宝般的财富, 所谓的21世纪黑金 – 数据. 驰骋在这个时代, 计算机的世界越来越有海贼王的精彩 – 财富就在那儿, 去拿吧! – 一个崭新的时代.</p>
+
+<p>不同的是, 数据时代的one piece可不止一份. 或许是金钱诱惑的驱动(哪件技术的发展不是呢?), 或许带着一点贡献时代的情怀, 从21世纪头五年到现在, 计算机世界, 乃至全世界, 进入了大数据的时代.</p>
+
+<p>每个胸怀数据之志的计算机人都在寻找one piece的通路. Hadoop/Spark等兴起无不是众望所归, 生逢其时. 平心而论, 大数据处理平台等带来的”新技术”并非都是新技术, 也肯定不是最精尖的那些. 然而, 那些高端的生不逢时的技术, 只能是恰如猛虎卧荒丘.</p>
+
+<p>历经头5年Hadoop热潮的人们应该不会对此陌生: 一个由脚本语言粘合起来的世界. 我们写好各种code snippets, 打成jar包, 以shell script作为控制器, 以系统时间为salt制定输入输出路径, 串起逻辑流. SummingBird的出现或许可以减轻你的负担, 不过那也是近一两年的事情了. 在Spark的世界里, 我们要告诉大家的第一件事就是Driver.</p>
+
+<p>或许你可以把Driver看做Hadoop世界中的shell script, 但又远远不止. 可以说是”虽不中, 亦不远矣”. 对于Spark用户来说, Driver无处不在: 当你打开Spark Shell的时候, 你就已经开始跟Driver打交道了. 当你写下<code>val a = 1</code> 这种简单的语句时, Driver就已经开始为你忙活了. 当然, Spark Shell中有一些特殊的情况, 当你在真正应用代码中执行到这句时, 其实, 几乎什么都没发生. 在这里, 你可以把Driver当做第一次与Spark交流的大门.</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/06/17/spark-internals-deploy/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/03/11/crazy-small-files-in-hdfs/">Crazy Small Files in HDFS</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-11T16:28:47+08:00" pubdate data-updated="true">Mar 11<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>Background</h2>
+
+<p>2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the core of LDA &ndash; the Gibbs sampling, I find that there are some trivial matters in the way of creating a usable LDA. Mostly, they are the pre-processing of text files. For the word segmentation, both Chinese and English, I wrap Lucene with a piece of scala code to support that, just like what <a href="http://www.scalanlp.org/">ScalaNLP</a> does. But the input format traps me lots of time.</p>
+
+<p>The standard input format of Spark is from the interface called <code>textFiles(path, miniSplit)</code> in the <code>SparkContext</code> class. But it is a line processor, which digest one line each time. However what I want is a KV processor, i.e. I need an interface which can return me a KV pair (fileName, content) given a directory path. So I try to write my own <code>InputFormat</code>.</p>
+
+<p>Firstly, I try to use the <code>lineReader</code> and handle the fragments of blocks myself, later I find that it&rsquo;s both ugly and unnecessary, just as the code list below. I have to glue them together with a fixed seperator &ndash; &lsquo;\n&rsquo;. Instead of that, I use a more low level interface named <code>FSDataInputStream</code> to read an entire block once time. However, there are still some details need to be improved. Here, let&rsquo;s begin our explore.</p>
+
+<figure class='code'><figcaption><span>lineReader version RecordReader (the terrible version) - BatchFileRecordReader.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="cm">/**</span>
+</span><span class='line'><span class="cm">     * Reads an entire block contents. Note that files which are larger than the block size of HDFS</span>
+</span><span class='line'><span class="cm">     * are cut by HDFS, then there are some fragments. File names and offsets are keep in the key,</span>
+</span><span class='line'><span class="cm">     * so as to recover entire files later.</span>
+</span><span class='line'><span class="cm">     *</span>
+</span><span class='line'><span class="cm">     * Note that &#39;\n&#39; substitutes all other line breaks, such as &quot;\r\n&quot;.</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">next</span><span class="o">(</span><span class="n">BlockwiseTextWritable</span> <span class="n">key</span><span class="o">,</span> <span class="n">Text</span> <span class="n">value</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">key</span><span class="o">.</span><span class="na">fileName</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="na">getName</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">key</span><span class="o">.</span><span class="na">offset</span> <span class="o">=</span> <span class="n">pos</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">value</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">pos</span> <span class="o">&gt;=</span> <span class="n">end</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">Text</span> <span class="n">blockContent</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Text</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">Text</span> <span class="n">line</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Text</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">while</span> <span class="o">(</span><span class="n">pos</span> <span class="o">&lt;</span> <span class="n">end</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">pos</span> <span class="o">+=</span> <span class="n">reader</span><span class="o">.</span><span class="na">readLine</span><span class="o">(</span><span class="n">line</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">blockContent</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">line</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(),</span> <span class="mi">0</span><span class="o">,</span> <span class="n">line</span><span class="o">.</span><span class="na">getLength</span><span class="o">());</span>
+</span><span class='line'>            <span class="n">blockContent</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">LFs</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">LFs</span><span class="o">.</span><span class="na">length</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">totalLength</span> <span class="o">&lt;</span> <span class="n">blockContent</span><span class="o">.</span><span class="na">getLength</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">value</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">blockContent</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(),</span> <span class="mi">0</span><span class="o">,</span> <span class="n">totalLength</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">value</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">blockContent</span><span class="o">.</span><span class="na">getBytes</span><span class="o">());</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/03/11/crazy-small-files-in-hdfs/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/18/how-to-use-spark-for-ml-algorithms-and-why/">How to Use Spark for ML Algorithms and Why ?</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-18T16:33:43+08:00" pubdate data-updated="true">Jan 18<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><strong>NOTE</strong> This PR is only a request for comments, since it introduces some minor incompatible interface change in MLlib.</p>
+
+<p><strong>Update 2014-01-16</strong> The inner iteration counts of local optimization is also an important parameter, which is related to the convergence rate. I will add some new experiments about it ASAP.</p>
+
+<p><strong>Update 2014-01-16 [2]</strong>Using <code>data.cache</code> brings a great performance gain, BSP+ is worse than original version then.</p>
+
+<p><strong>Update 2014-01-17</strong> When we removing the straggler of BSP+, BSP+ is better than original version. Straggler comes from the <code>sc.textFile</code>, HDFS gives bad answer. Seems that SSP is more reasonable and useful now. Besides, inner iteration is also a big factor. For our data with 15 partitions, 60 seems to be the best inner iteration.</p>
+
+<p>If there is no straggler at all, the costs caused by framework must be higher than the inner iteration expansion. Meanwhile, the uncertainty caused by high parallelism is made up by the acceleration.</p>
+
+<p><strong>Update 2014-01-18</strong> We also find that there are some influences come from the partition number. As we said earlier, there is a inflection point.</p>
+
+<p><strong>Update 2014-01-18 [2]</strong> We test SVM with BSP+, it runs cool. We also modify LASSO, RidgeRegression, LinearRegression.</p>
+
+<p><strong>Update 2014-01-18 [3]</strong> BSP+ SVM beats original SVM 7 倍，是不是JobLogger或者时间的统计会影响性能？因为后者打印的log数量非常庞大。经过验证，阎栋加入的JobLogger没有那么严重的影响。由系统加入的TaskLog和DAGLog不知道怎么停。</p>
+
+<p><strong>Update 2014-01-18 [4]</strong> 思考一个问题，为什么同样的工作量，60次混合会比传统的梯度下降要好？要能解释这一点。差异只在混合策略上，例如，我有一个想法，还没想清楚呢就跟别人说了，搞得大家都不明白。如果自己想清楚了，再跟别人说会更明白。</p>
+
+<p><strong>Update 2014-01-18 [5]</strong> BSP+快的原因，因为同步次数少了，导致网络开销同比减少。所以结果比原始情况好。大大的提升通信量，才能展现出我们的优势。</p>
+
+<p><strong>Update 2014-01-18 [6]</strong> 找了一个新数据，这份数据2000维度，30多个GB，比之前的unigram好，但又比trigram少，可见mllib之废物，1000w的维度就已经跪了！！这还做毛个大数据啊？本来像自己动手生成数据集，但是总感觉不好。网上找到一个新的。找新数据的目的就是增加维度，这样让每次迭代之间传输的数据量更大，我们的优势更加明显。</p>
+
+<p><strong>factors we found</strong></p>
+
+<ul>
+<li>number of partitions</li>
+<li>straggler (YJP profiling)</li>
+<li>inner iteration</li>
+<li>outer iteration</li>
+</ul>
+
+
+<p><strong>Two different usages of Spark present two different thoughts</strong></p>
+
+<ul>
+<li><p>The classic one is that we use Spark as a distributed code compiler, plus with a task dispatcher and executors. In this way, <a href="http://www.eecs.berkeley.edu/~keo/">Kay Ousterhout</a> publish a paper called <a href="http://www.cs.berkeley.edu/~matei/papers/2013/sosp_sparrow.pdf">Sparrow: Distributed, Low Latency Scheduling</a> is the future. However, I don&rsquo;t think it is the best practice of Spark. The <a href="https://spark-project.atlassian.net/browse/SPARK-1006">DAG scheduler stack overflow</a> is also a big question as mentioned by <a href="http://www.cs.berkeley.edu/~matei/">Matei Zaharia</a>.</p></li>
+<li><p>A more natural way to use Spark W.R.T. machine learning is treat Spark as a effective distributed executive container. Data with cache stay in each executor, computing flow over these data, and feedback parameters to drivers again and again.</p></li>
+</ul>
+
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/01/18/how-to-use-spark-for-ml-algorithms-and-why/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/17/adl45-meeting-record/">ADL45 Meeting Record</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-17T18:49:47+08:00" pubdate data-updated="true">Jan 17<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>引子</h2>
+
+<p>12月17-18日参加了计算机学会组织的<a href="http://www.ccf.org.cn/sites/ccf/xhdtnry.jsp?contentId=2771337645909">推荐系统前沿课程</a>，来自工业界和学术界前沿的诸位专家大牛们分享了实践和理论模型等。受益良多，趁着余热先给大家一个介绍，稍后我拿到了slides可以继续完善。疏漏之处在所难免，还请大家谅解。
+课程列表：</p>
+
+<ol>
+<li><p>Social recommendation systems 诺亚方舟实验室 杨强</p></li>
+<li><p>电子商务中的个性化技术 阿里妈妈广告事业部总监 初敏</p></li>
+<li><p>推荐系统实践和挑战：以阿里巴巴、百分点科技为例 电子科技大学 周涛</p></li>
+<li><p>Critiquing-based recommender systems and user experiences 香港浸会大学 陈黎</p></li>
+<li><p>情景感知的信息推荐 中国科技大学 陈恩红</p></li>
+<li><p>Cross-domain link prediction and recommendation 清华大学 唐杰</p></li>
+<li><p>搜索广告的拍卖机制设计 MSRA 刘铁岩</p></li>
+</ol>
+
+
+<p>先说心得，总体来看，推荐系统这个领域，学术界单干拼不过工业界，工业界单个拼不过学术界工业界的合体。刘铁岩老师这次游离在外，讲的是博弈论。这几大talk基本涵盖推荐系统发展方向，其中不乏小众产品，但整体对方向和故事的把握都是不错的，可能会皮厚馅薄，不过对得起“前沿”这个词，很具有指导意义。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/01/17/adl45-meeting-record/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/blog/2014/01/17/petuum-source-code-read-and-initial-test-result/">Petuum: Source Code Read and Initial Test Result</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-01-17T18:40:01+08:00" pubdate data-updated="true">Jan 17<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>这几天为了测好<a href="http://petuum.org/">Petuum</a>，花了一点时间看了一下Petuum源码，把其中的精华跟大家分享一下。</p>
+
+<p>Petuum共有9050行代码，代码文件数39个。整个Petuum这么多源码，其实就只实现了一个LDA，外加一个Hello world。目前没有一个pull request和issue，另外已经很久（20天）没有更新了。发现C++写的在github上不是很受欢迎，GraphLab也很少有pull request。相比之下Spark的Pull request之多，热度完全不同。</p>
+
+</div>
+  
+  
+    <footer>
+      <a rel="full-article" href="/blog/2014/01/17/petuum-source-code-read-and-initial-test-result/">Read on &rarr;</a>
+    </footer>
+  
+
+
+    </article>
+  
+  <div class="pagination">
+    
+    <a href="/blog/archives">Blog Archives</a>
+    
+  </div>
+</div>
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p>When machine learning meets system.</p>
+  <p>新浪微博: <a href="http://weibo.com/yinxusen">@yinxusen</a><br/>
+     LinkedIn: <a href="http://www.linkedin.com/in/xusenyin">Xusen Yin</a><br/>
+     Github: <a href="https://github.com/yinxusen">@yinxusen</a>
+  </p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/02/28/new-course-applied-machine-learning-and-implementation/">New Course: Applied Machine Learning and Implementation</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/mllib-sparsity/">Mllib Sparsity</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/06/17/spark-internals-deploy/">Spark Internals: Deploy, Scheduling and RDD</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/03/11/crazy-small-files-in-hdfs/">Crazy Small Files in HDFS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/01/18/how-to-use-spark-for-ml-algorithms-and-why/">How to Use Spark for ML Algorithms and Why ?</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Xusen -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
