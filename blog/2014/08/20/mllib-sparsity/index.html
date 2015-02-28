@@ -1,98 +1,10 @@
+<h1>MLlib：归约数据量</h1>
 
-<!DOCTYPE html>
-<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
-<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
-<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  <title>MLlib：归约数据量 - wtf AI ?</title>
-  <meta name="author" content="Xusen">
+<h2>以及发发牢骚 :&ndash;)</h2>
 
-  
-  <meta name="description" content="以及发发牢骚 :&ndash;) 稀疏向量的支持：自然数据中的稀疏属性的挖掘和支持 现在来探索如何在大数据中归约数据量，降低计算复杂度。本文两侧分治之，其一，通过发掘和支持自然数据中的稀疏属性，算作自然资源的挖掘；其二，通过对现有数据的聚集归约，视为人工数据聚合。这两种方法在 MLlib &hellip;">
-  
+<h2>Table of contents</h2>
 
-  <!-- http://t.co/dKP3o1e -->
-  <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  
-  <link rel="canonical" href="http://yinxusen.github.io/blog/2014/08/20/mllib-sparsity">
-  <link href="/favicon.png" rel="icon">
-  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
-  <link href="/atom.xml" rel="alternate" title="wtf AI ?" type="application/atom+xml">
-  <script src="/javascripts/modernizr-2.0.js"></script>
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
-  <script src="/javascripts/octopress.js" type="text/javascript"></script>
-  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
-<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
-<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
-
-  
-
-</head>
-
-<body   >
-  <header role="banner"><hgroup>
-  <h1><a href="/">wtf AI ?</a></h1>
-  
-    <h2>Gee...  I don't know what AI means...</h2>
-  
-</hgroup>
-
-</header>
-  <nav role="navigation"><ul class="subscription" data-subscription="rss">
-  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
-  
-</ul>
-  
-<form action="http://google.com/search" method="get">
-  <fieldset role="search">
-    <input type="hidden" name="q" value="site:yinxusen.github.io" />
-    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
-  </fieldset>
-</form>
-  
-<ul class="main-navigation">
-  <li><a href="/">Blog</a></li>
-  <li><a href="/blog/archives">Archives</a></li>
-  <li><a href="/aboutme">About Me</a></li>
-</ul>
-
-</nav>
-  <div id="main">
-    <div id="content">
-      <div>
-<article class="hentry" role="article">
-  
-  <header>
-    
-      <h1 class="entry-title">MLlib：归约数据量</h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-08-20T19:01:03+08:00" pubdate data-updated="true">Aug 20<span>th</span>, 2014</time>
-        
-      </p>
-    
-  </header>
-
-
-<div class="entry-content"><h2>以及发发牢骚 :&ndash;)</h2>
+<p>[TOC]</p>
 
 <h2>稀疏向量的支持：自然数据中的稀疏属性的挖掘和支持</h2>
 
@@ -109,6 +21,9 @@
 <p>如果把数据点除以数据空间作为数据密度，那么 Netflix 竞赛数据的密度只有 1.17%，rcv1 数据集的数据密度仅 0.15%，近些年来所用到的欺诈检测的数据平均密度仅有 10%，而且这些数据为了提取更多的特征，通常都人为增大了欺诈数据的条目，即是有偏的！现在估算一下你手头数据的数据密度，是否要考虑稀疏性了呢？那么应该怎么做？核心就是要善于发现和利用这种属性。Spark 1.0 加入了稀疏向量，正是往实际应用迈进了临门一脚。</p>
 
 <p>有了稀疏向量只是一个基础，说明我们有能力发掘现实世界的稀疏性了。然而下一步更重要的是，如何在机器学习算法中更好的利用这种性质？要知道，稀疏性无处不在，但又非常脆弱，很多操作就能破坏它。例如向量加法，两个稀疏向量相加的结果会比之前的向量稠密一些，多个向量相加的结果就完全是稠密矩阵了。因此，善于利用利于保持稀疏性的线性代数运算是其中的关键。</p>
+
+<!--more-->
+
 
 <h3>K 均值的稀疏算法</h3>
 
@@ -666,128 +581,5 @@
 <p>最近有点懒，现在把拖了很久的这篇文章整理一下，聊表慰藉。本文原创的思想来源于 Spark Summit 2014 Xiangrui 和 Amde 两个讲座的 slide，都很有启发和借鉴的意义，因此整理一下放在这里。做了一年的 Spark，尤其是 MLlib，现在回头来看，为什么在 Spark 平台上写一个优秀的机器学习算法这么难？（这样说有点不公平，因为在 Hadoop 上实现会更烦琐。）或许真的是现有 Spark 的抽象不适合机器学习，但是迄今为止开源社区没有更好的分布式框架的抽象可以用了。也许各大互联网公司有自己的秘密武器，不过这就不得而知了。MLlib 的本意（从名字上来看）也许是想解放 machine learner，但是现在越来越走在解放 end user的道路上了。但我始终觉得这不是良策，因为 machine leaner 开发新的机器学习程序还是很难，这样导致整个系统不具有可扩展性。也许对于机器学习没有 all in one 这种让我们省力的抽象或者平台，也许 machine learner 就该在平台和算法的世界里继续努力的奋斗。</p>
 
 <p>无论如何，好的思想值得借鉴和反思，也许本文值得一看！</p>
-</div>
 
-
-  <footer>
-    <p class="meta">
-      
-  
-
-<span class="byline author vcard">Posted by <span class="fn">Xusen</span></span>
-
-      
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2014-08-20T19:01:03+08:00" pubdate data-updated="true">Aug 20<span>th</span>, 2014</time>
-      
-
-
-    </p>
-    
-      <div class="sharing">
-  
-  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yinxusen.github.io/blog/2014/08/20/mllib-sparsity/" data-via="" data-counturl="http://yinxusen.github.io/blog/2014/08/20/mllib-sparsity/" >Tweet</a>
-  
-  
-  
-</div>
-
-    
-    <p class="meta">
-      
-        <a class="basic-alignment left" href="/blog/2014/06/17/spark-internals-deploy/" title="Previous Post: Spark Internals: Deploy, Scheduling and RDD">&laquo; Spark Internals: Deploy, Scheduling and RDD</a>
-      
-      
-    </p>
-  </footer>
-</article>
-
-</div>
-
-<aside class="sidebar">
-  
-    <section>
-  <h1>About Me</h1>
-  <p>When machine learning meets system.</p>
-  <p>新浪微博: <a href="http://weibo.com/yinxusen">@yinxusen</a><br/>
-     LinkedIn: <a href="http://www.linkedin.com/in/xusenyin">Xusen Yin</a><br/>
-     Github: <a href="https://github.com/yinxusen">@yinxusen</a>
-  </p>
-</section>
-<section>
-  <h1>Recent Posts</h1>
-  <ul id="recent_posts">
-    
-      <li class="post">
-        <a href="/blog/2014/08/20/mllib-sparsity/">MLlib：归约数据量</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/06/17/spark-internals-deploy/">Spark Internals: Deploy, Scheduling and RDD</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/03/11/crazy-small-files-in-hdfs/">Crazy Small Files in HDFS</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/01/18/how-to-use-spark-for-ml-algorithms-and-why/">How to Use Spark for ML Algorithms and Why ?</a>
-      </li>
-    
-      <li class="post">
-        <a href="/blog/2014/01/17/adl45-meeting-record/">ADL45 Meeting Record</a>
-      </li>
-    
-  </ul>
-</section>
-
-
-
-
-
-  
-</aside>
-
-
-    </div>
-  </div>
-  <footer role="contentinfo"><p>
-  Copyright &copy; 2014 - Xusen -
-  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
-</p>
-
-</footer>
-  
-
-
-
-
-
-
-
-  <script type="text/javascript">
-    (function(){
-      var twitterWidgets = document.createElement('script');
-      twitterWidgets.type = 'text/javascript';
-      twitterWidgets.async = true;
-      twitterWidgets.src = '//platform.twitter.com/widgets.js';
-      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
-    })();
-  </script>
-
-
-
-
-
-</body>
-</html>
+<blockquote><p>Written with <a href="https://stackedit.io/">StackEdit</a>.</p></blockquote>
