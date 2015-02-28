@@ -1,0 +1,1911 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[wtf AI ?]]></title>
+  <link href="http://yinxusen.github.io/atom.xml" rel="self"/>
+  <link href="http://yinxusen.github.io/"/>
+  <updated>2015-02-28T22:09:51+08:00</updated>
+  <id>http://yinxusen.github.io/</id>
+  <author>
+    <name><![CDATA[Xusen]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[New Course: Applied Machine Learning and Implementation]]></title>
+    <link href="http://yinxusen.github.io/blog/2015/02/28/new-course-applied-machine-learning-and-implementation/"/>
+    <updated>2015-02-28T00:34:02+08:00</updated>
+    <id>http://yinxusen.github.io/blog/2015/02/28/new-course-applied-machine-learning-and-implementation</id>
+    <content type="html"><![CDATA[<p>大家好，2015年四月份会在<a href="www.chinahadoop.cn">小象学院</a>开一门数据分析的课程，名称暂定为《实践机器学习算法详解及工程实现》。中文名很长，我擅自改了个英文名字，Applied Machine Learning and Implementation. 如果喜欢，还请选课，希望AMLI能伴你度过一个而快乐的春天。:)</p>
+
+<!--more-->
+
+
+<h2>我为什么开这门课</h2>
+
+<p>想必很多人对数据科学家（Data Scientist）这类的职位很感兴趣，而想成为一个合格的数据科学家，需要做非常多的功课，这些功课大部分大学课程和研究生课程都不会有太多侧重。几年前我开始接触机器学习、分布式计算等内容的时候，也是自己摸着石头过河，东拼西凑的自学过来的。我想，如果在我学习的那段时间能有个还比较了解这方面内容的人稍加指导，会省很多力气。所谓“先搭架子后填肉”，一直都是我喜欢的学习方式。这门课的主要目的就是让你先把“架子”打好，之后再根据自己的需要“填肉”，相信会事半功倍。</p>
+
+<p>对我而言，也是个总结和再学习的机会。这几年从数据挖掘到机器学习，再到分布式系统以及各种开源项目参与了不少，但是在我脑海里也不怎么成体系，由此导致的后果就是“前面学了后面忘”。通过讲课的方式，也能让把之前的理解加深，并发现和修正自己的一些错误。作为讲师，也是一个向学员学习的机会。</p>
+
+<h2>课程形式</h2>
+
+<p>本课程共计12周，从四月份讲到六月份。每周两个小时的视频，我会分要点把它且分为6个小片段，这样方便大家学习回顾，也便于你利用自己的碎片时间。每周的课程基本来说前四小节是机器学习方面的理论和基础知识，包括分布式的实现（Spark为主，并会跟Scikit-learn对比使用），后两小节是实践课程，我会带大家一起体会一些有趣的小项目，看看数据科学家的日常工作。</p>
+
+<p>每周会安排课后作业，现在我还不太确定作业的形式，但是我觉得应该以程序为主。基本上来说每周会有一个小project。</p>
+
+<h2>本课程适合哪些人</h2>
+
+<p>这是一门entry-level的课程，如果你已经是资深的数据科学家，也欢迎来看我的课程，同时留下宝贵的意见。这门课程尤其适用于刚接触数据挖掘、机器学习不就的小伙伴们。</p>
+
+<h2>课程最后期望的收获</h2>
+
+<p>如上所述，我希望在学习本课程之后，学院可以对机器学习有一个明确的认识，了解其重要组成部分。并能够分析和解决一些实际问题。后者尤为重要，数据科学家要避免成为“嘴皮子先生”，要深入数据中，用你的直觉和经验解决问题。</p>
+
+<h2>我的想法和计划</h2>
+
+<p>本课程为收费课程，但我会尽量让课程大纲和一些代码文档免费开放。你可以持续关注我的Github repo：<a href="https://github.com/yinxusen/AMLI">AMLI</a>，最新内容会随时发布。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Mllib Sparsity]]></title>
+    <link href="http://yinxusen.github.io/blog/2014/08/20/mllib-sparsity/"/>
+    <updated>2014-08-20T00:00:00+08:00</updated>
+    <id>http://yinxusen.github.io/blog/2014/08/20/mllib-sparsity</id>
+    <content type="html"><![CDATA[<h1>MLlib：归约数据量</h1>
+
+<h2>以及发发牢骚 :&ndash;)</h2>
+
+<h2>Table of contents</h2>
+
+<p>[TOC]</p>
+
+<h2>稀疏向量的支持：自然数据中的稀疏属性的挖掘和支持</h2>
+
+<p>现在来探索如何在大数据中归约数据量，降低计算复杂度。本文两侧分治之，其一，通过发掘和支持自然数据中的稀疏属性，算作自然资源的挖掘；其二，通过对现有数据的聚集归约，视为人工数据聚合。这两种方法在 MLlib 中均得到了很好的体现。本篇旨在剖析 MLlib 现有的两类数据归约方法，权当为后来的机器学习分布式算法抛砖引玉。</p>
+
+<p>自从 Spark 1.0 以来，MLlib 开始透过<code>Vector</code>接口支持稀疏向量。并在下层以 Breeze 承接计算主体。这一改变影响巨大，首先现有的几乎所有算法都遭到了随之而来的改动。从用于矩阵分解的 ALS、SVD，到所有的线性模型，乃至朴素贝叶斯和 K 均值算法都在改动之列。新加入的决策树算法因其起步晚，所以一开始就享受到稀疏向量带来的优势。甚至可以说，正是稀疏矩阵的加入，让 MLlib 由一个 demo 式的玩具，变成了可以工业应用的平台。</p>
+
+<h3>稀疏性</h3>
+
+<p>稀疏性是自然世界的本质属性。在大数据时代的数据几乎是稀疏数据的天下。稀疏性来源于两个方面，一是数据“基”非常大，即数据空间之大；二是数据“点”非常少，即可观测的性征少。N-Gram 是前者，数据空间大小以全体文字数目为幂次，而世界上能出现的N个文字的组合却远少于这个值。点评数据是后者，由于长尾因素，大多数用户能点评的数据非常有限，因此仅填充了“用户——物品”矩阵很少的一部分。</p>
+
+<p>从统计学家，或者机器学习人员的角度来看，现实世界的数据等于稀疏数据（或者低秩数据）加上噪声。而这正是机器学习算法能够成功过的一个重要基础。统计学家和机器学习人员的一个重要工作就是在貌似繁杂的数据中找到那些简单的构造因素。有点类似于牛顿三定律，不论世界多么复杂，物质作用多么繁复，只要是在经典力学的范围内，就要遵循三定律。三定律就是世界的模型，由此构成稀疏的世界。一幅图像是稠密的，其内部充斥着 RGB 三原色的组合，并且大都不为零。一个神经讯号是稠密的，在时间线上连续存在。对于这种数据，我们可以通过小波变换或者傅里叶变换找到它稀疏的一面。</p>
+
+<p>如果把数据点除以数据空间作为数据密度，那么 Netflix 竞赛数据的密度只有 1.17%，rcv1 数据集的数据密度仅 0.15%，近些年来所用到的欺诈检测的数据平均密度仅有 10%，而且这些数据为了提取更多的特征，通常都人为增大了欺诈数据的条目，即是有偏的！现在估算一下你手头数据的数据密度，是否要考虑稀疏性了呢？那么应该怎么做？核心就是要善于发现和利用这种属性。Spark 1.0 加入了稀疏向量，正是往实际应用迈进了临门一脚。</p>
+
+<p>有了稀疏向量只是一个基础，说明我们有能力发掘现实世界的稀疏性了。然而下一步更重要的是，如何在机器学习算法中更好的利用这种性质？要知道，稀疏性无处不在，但又非常脆弱，很多操作就能破坏它。例如向量加法，两个稀疏向量相加的结果会比之前的向量稠密一些，多个向量相加的结果就完全是稠密矩阵了。因此，善于利用利于保持稀疏性的线性代数运算是其中的关键。</p>
+
+<!--more-->
+
+
+<h3>K 均值的稀疏算法</h3>
+
+<p>最典型的成功案例就是 K 均值算法。同样的数据集，在利用稀疏向量之后，不仅省下了大量的存储空间（是数据密度而定），更能让程序加速数倍。K 均值是一个典型的 Expectation-Maximization 算法。即首先在固定聚类中心的前提下求期望（这里是到各中心点的最小距离），然后是固定每个样本类属后最优化中心点（这里就是简单的求均值）。而这个距离计算深深地出卖了 K 均值算法。中心点一般而言都是求均值之后的结果，求均值恰好是一堆稀疏向量求和的过程，因此中心点这个向量一般而言都是稠密的。一个稠密的向量和一个稀疏的样本在求距离的时候很显然是稠密矩阵占优，因为两个向量之间做减法。如此一来，数据本身的稀疏性就被大大的破坏了。为此我们要寻求解决之道。</p>
+
+<p>解决之道就在距离计算公式中，该公式可以拆分为两个 norm 的计算和一个点积的计算。样本本身是稀疏的，因此其 norm 计算也是稀疏的，并且这个值是不变的，可以先期计算好；中心点本身是稠密的，但是其在 expectation 的计算过程中不变，所以只需要计算一次就好；剩下的点积是稀疏向量占优的。这样我们就立马解决了刚才的难题，极大地降低了计算量。</p>
+
+<h3>线性模型的稀疏算法</h3>
+
+<p>下一个比较成功的案例是线性模型。线性模型每次迭代计算的本质是求梯度，而梯度也是样本数据与某种求偏导得来的向量的点积，因此在求每一个样本点的梯度的时候，可以很好的利用稀疏的性质。下面问题来了，梯度在做聚合的时候，如果直接用稀疏向量的加法把这些梯度全部累加起来，其实是非常要命的。首先，根据刚才所言，多个稀疏向量相加最终结果一般是稠密矩阵；其次，根据稀疏向量的定义，要生成很多不必要的临时对象，造成严重的 GC。因此，MLlib 采取的做法是用一个稠密向量作为初始值，将稀疏向量聚合到这个稠密向量上，因此降低了计算的难度。</p>
+
+<h3>统计值的稀疏性算法</h3>
+
+<p>统计值个数、均值、最大最小值、非零元以及方差更是探索稀疏性的便宜之所。首先通过使用流式均值、方差算法，可以再对数据的一遍扫描后得到这六种统计值。其次，由于稀疏性的存在，再次将算法复杂度由 O(nd) 降到 O(nnz)。</p>
+
+<h3>SVD 的稀疏性算法</h3>
+
+<p>MLlib 探索稀疏性的最后一例是奇异值分解（SVD）。类似于 ALS，SVD 也是一种常用的推荐算法，并且是由传统的线性代数转换而来。至于 ALS 算法，笔者在 2014 年 8 月期的《程序员》中已作详细的介绍。SVD 在计算上与特征值/特征向量求解是高度相关的，（这里是一些公式）。在使用 Lanczos 算法求解特征值分解的时候，有大量的矩阵与向量乘积运算。因此，在内积计算的时候可以很好的利用稀疏性，而在向量累加的时候利用跟线性模型一样的做法即可。</p>
+
+<p>花开两朵，各表一枝。对于无法直接利用稀疏性来降低计算复杂度的算法来说，人工归约与压缩可能是另外的途径。MLlib 中决策树算法的实现是其中很明显的代表。</p>
+
+<h2>决策树算法的实现：人为的数据规约降低计算复杂度</h2>
+
+<h3>决策树算法</h3>
+
+<p>决策树算法是所有机器学习方法中最容易解释的一种了。依据人工智能的发展史，决策树的祖先可以追溯到上世纪50年代的符号推理模型。John McCarthy等人意图用逻辑与符号表达人类思维过程。而决策树本身可以算作符号推理派和统计学派的“结晶”。</p>
+
+<p>决策树的故事是从一张表开始的。这张表的行是样本，列是特征。每一次决策的过程都会遍历这个表所有的项，从中找到一个最合适的，这次决策就表示为：如果某个样本该特征的值大于当前选择的项，那么属于右边子树中的类，否则属于左边子树中的类。因此决策树其实很简单，站在每个节点上，面对这个节点中有的数据，选择一个“最合适的”表项进行分裂。“最合适的”表项有多种选择，MLlib官方文档就有很详细的介绍，这里不再赘述。</p>
+
+<h3>数据采样、分割</h3>
+
+<p>这里问题就来了。假设数据有千千万，我怎样才能高效的处理这些数据，并从中找到我需要的表项呢？可行的方案之一就是采样，可以使在样本这个级别采样，也可以是在特征这个级别采样，甚至两个方向同时采样。但是这种采样一般都伴随着组合模型，如果单纯训练一棵树，采样比例过低的话会导致效果不好。尤其是，我们无法保证数据本身是随机分布的，因此难以保证随机采样的准确性。</p>
+
+<p>另一个方法是做data parallel，每个数据划分进行自己的决策树训练，最终的结果混合到一起做模型组合。这种想法比较直接，而且可以复用单机的决策树训练算法。但是如果出现了比较极端的情况会导致单个机器上的决策树训练失败。比如每个机器上的数据都不具有可区分性，其各个特征方向方差都很小，而不同的data partition之间方差很大，这样导致单个数据划分内部效果不好。甚至很多情况下都会存在这种问题，即每个数据分片内部数据比较相似，而分片之间数据差异很大。</p>
+
+<h3>决策树的三大优化算法</h3>
+
+<p>于是一个百来行就能写完的程序扩展成将近2000行的“巨无霸”（很多MLlib的程序都面临着这种境况）。<strong>（其实我现在越来越觉得能把简单的程序写的这么复杂不是好事儿，肯定是哪个地方的抽象出问题了。）</strong> MLlib实现的决策树共有三种分布式程序优化方法，一是聚合代替shuffle，二是分桶减少计算，三是逐层训练降低数据扫描次数。下面一一道来。</p>
+
+<p>先看决策树算法的主干（简单起见删了很多不重要的语句）：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'> <span class="k">def</span> <span class="n">train</span><span class="o">(</span><span class="n">input</span><span class="k">:</span> <span class="kt">RDD</span><span class="o">[</span><span class="kt">LabeledPoint</span><span class="o">])</span><span class="k">:</span> <span class="kt">DecisionTreeModel</span> <span class="o">=</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">val</span> <span class="o">(</span><span class="n">splits</span><span class="o">,</span> <span class="n">bins</span><span class="o">)</span> <span class="k">=</span> <span class="nc">DecisionTree</span><span class="o">.</span><span class="n">findSplitsBins</span><span class="o">(</span><span class="n">retaggedInput</span><span class="o">,</span> <span class="n">metadata</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">nodes</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Array</span><span class="o">[</span><span class="kt">Node</span><span class="o">](</span><span class="n">maxNumNodes</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">var</span> <span class="n">level</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>    <span class="k">var</span> <span class="n">break</span> <span class="k">=</span> <span class="kc">false</span>
+</span><span class='line'>    <span class="k">while</span> <span class="o">(</span><span class="n">level</span> <span class="o">&lt;=</span> <span class="n">maxDepth</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="n">break</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">val</span> <span class="n">splitsStatsForLevel</span> <span class="k">=</span> <span class="nc">DecisionTree</span><span class="o">.</span><span class="n">findBestSplits</span><span class="o">(</span><span class="n">treeInput</span><span class="o">,</span> <span class="n">parentImpurities</span><span class="o">,</span>
+</span><span class='line'>        <span class="n">metadata</span><span class="o">,</span> <span class="n">level</span><span class="o">,</span> <span class="n">nodes</span><span class="o">,</span> <span class="n">splits</span><span class="o">,</span> <span class="n">bins</span><span class="o">,</span> <span class="n">maxLevelForSingleGroup</span><span class="o">,</span> <span class="n">timer</span><span class="o">)</span>
+</span><span class='line'>      <span class="k">for</span> <span class="o">((</span><span class="n">nodeSplitStats</span><span class="o">,</span> <span class="n">index</span><span class="o">)</span> <span class="k">&lt;-</span> <span class="n">splitsStatsForLevel</span><span class="o">.</span><span class="n">view</span><span class="o">.</span><span class="n">zipWithIndex</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">extractNodeInfo</span><span class="o">(</span><span class="n">nodeSplitStats</span><span class="o">,</span> <span class="n">level</span><span class="o">,</span> <span class="n">index</span><span class="o">,</span> <span class="n">nodes</span><span class="o">)</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">val</span> <span class="n">topNode</span> <span class="k">=</span> <span class="n">nodes</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">topNode</span><span class="o">.</span><span class="n">build</span><span class="o">(</span><span class="n">nodes</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">new</span> <span class="nc">DecisionTreeModel</span><span class="o">(</span><span class="n">topNode</span><span class="o">,</span> <span class="n">strategy</span><span class="o">.</span><span class="n">algo</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>通过这个还算清晰的框架，可以看出决策树训练共有三步，一是<code>findSplitsBins</code>，其作用是将原始数据按照特征的维度分桶。二是while循环中的<code>findBestSplits</code>，目的是在决策树每层节点的训练中为每个节点找到最佳的分裂点。最后一步是构造决策树。</p>
+
+<p>现在寻根溯源，首先看看数据按特征分桶是怎么做的：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'> <span class="k">protected</span><span class="o">[</span><span class="kt">tree</span><span class="o">]</span> <span class="k">def</span> <span class="n">findSplitsBins</span><span class="o">(</span>
+</span><span class='line'>      <span class="n">input</span><span class="k">:</span> <span class="kt">RDD</span><span class="o">[</span><span class="kt">LabeledPoint</span><span class="o">],</span>
+</span><span class='line'>      <span class="n">metadata</span><span class="k">:</span> <span class="kt">DecisionTreeMetadata</span><span class="o">)</span><span class="k">:</span> <span class="o">(</span><span class="kt">Array</span><span class="o">[</span><span class="kt">Array</span><span class="o">[</span><span class="kt">Split</span><span class="o">]],</span> <span class="nc">Array</span><span class="o">[</span><span class="kt">Array</span><span class="o">[</span><span class="kt">Bin</span><span class="o">]])</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">val</span> <span class="n">requiredSamples</span> <span class="k">=</span> <span class="n">numBins</span><span class="o">*</span><span class="n">numBins</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">fraction</span> <span class="k">=</span> <span class="k">if</span> <span class="o">(</span><span class="n">requiredSamples</span> <span class="o">&lt;</span> <span class="n">count</span><span class="o">)</span> <span class="n">requiredSamples</span><span class="o">.</span><span class="n">toDouble</span> <span class="o">/</span> <span class="n">count</span> <span class="k">else</span> <span class="mf">1.0</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">val</span> <span class="n">sampledInput</span> <span class="k">=</span>
+</span><span class='line'>      <span class="n">input</span><span class="o">.</span><span class="n">sample</span><span class="o">(</span><span class="n">withReplacement</span> <span class="k">=</span> <span class="kc">false</span><span class="o">,</span> <span class="n">fraction</span><span class="o">,</span> <span class="k">new</span> <span class="nc">XORShiftRandom</span><span class="o">().</span><span class="n">nextInt</span><span class="o">()).</span><span class="n">collect</span><span class="o">()</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">numSamples</span> <span class="k">=</span> <span class="n">sampledInput</span><span class="o">.</span><span class="n">length</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">val</span> <span class="n">stride</span><span class="k">:</span> <span class="kt">Double</span> <span class="o">=</span> <span class="n">numSamples</span><span class="o">.</span><span class="n">toDouble</span> <span class="o">/</span> <span class="n">numBins</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">metadata</span><span class="o">.</span><span class="n">quantileStrategy</span> <span class="k">match</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">case</span> <span class="nc">Sort</span> <span class="k">=&gt;</span>
+</span><span class='line'>        <span class="k">val</span> <span class="n">splits</span> <span class="k">=</span> <span class="nc">Array</span><span class="o">.</span><span class="n">ofDim</span><span class="o">[</span><span class="kt">Split</span><span class="o">](</span><span class="n">numFeatures</span><span class="o">,</span> <span class="n">numBins</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">val</span> <span class="n">bins</span> <span class="k">=</span> <span class="nc">Array</span><span class="o">.</span><span class="n">ofDim</span><span class="o">[</span><span class="kt">Bin</span><span class="o">](</span><span class="n">numFeatures</span><span class="o">,</span> <span class="n">numBins</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Find all splits.</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Iterate over all features.</span>
+</span><span class='line'>        <span class="k">var</span> <span class="n">featureIndex</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>        <span class="k">while</span> <span class="o">(</span><span class="n">featureIndex</span> <span class="o">&lt;</span> <span class="n">numFeatures</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="c1">// Check whether the feature is continuous.</span>
+</span><span class='line'>          <span class="k">val</span> <span class="n">isFeatureContinuous</span> <span class="k">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">isContinuous</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)</span>
+</span><span class='line'>          <span class="k">if</span> <span class="o">(</span><span class="n">isFeatureContinuous</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">val</span> <span class="n">featureSamples</span> <span class="k">=</span> <span class="n">sampledInput</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">lp</span> <span class="k">=&gt;</span> <span class="n">lp</span><span class="o">.</span><span class="n">features</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)).</span><span class="n">sorted</span>
+</span><span class='line'>            <span class="k">val</span> <span class="n">stride</span><span class="k">:</span> <span class="kt">Double</span> <span class="o">=</span> <span class="n">numSamples</span><span class="o">.</span><span class="n">toDouble</span> <span class="o">/</span> <span class="n">numBins</span>
+</span><span class='line'>            <span class="n">logDebug</span><span class="o">(</span><span class="s">&quot;stride = &quot;</span> <span class="o">+</span> <span class="n">stride</span><span class="o">)</span>
+</span><span class='line'>            <span class="k">for</span> <span class="o">(</span><span class="n">index</span> <span class="k">&lt;-</span> <span class="mi">0</span> <span class="n">until</span> <span class="n">numBins</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>              <span class="k">val</span> <span class="n">sampleIndex</span> <span class="k">=</span> <span class="n">index</span> <span class="o">*</span> <span class="n">stride</span><span class="o">.</span><span class="n">toInt</span>
+</span><span class='line'>              <span class="c1">// Set threshold halfway in between 2 samples.</span>
+</span><span class='line'>              <span class="k">val</span> <span class="n">threshold</span> <span class="k">=</span> <span class="o">(</span><span class="n">featureSamples</span><span class="o">(</span><span class="n">sampleIndex</span><span class="o">)</span> <span class="o">+</span> <span class="n">featureSamples</span><span class="o">(</span><span class="n">sampleIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="o">))</span> <span class="o">/</span> <span class="mf">2.0</span>
+</span><span class='line'>              <span class="k">val</span> <span class="n">split</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Split</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">,</span> <span class="n">threshold</span><span class="o">,</span> <span class="nc">Continuous</span><span class="o">,</span> <span class="nc">List</span><span class="o">())</span>
+</span><span class='line'>              <span class="n">splits</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)(</span><span class="n">index</span><span class="o">)</span> <span class="k">=</span> <span class="n">split</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>          <span class="o">}</span> <span class="k">else</span> <span class="o">{</span> <span class="o">???</span> <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="c1">// Find all bins.</span>
+</span><span class='line'>        <span class="n">featureIndex</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>        <span class="k">while</span> <span class="o">(</span><span class="n">featureIndex</span> <span class="o">&lt;</span> <span class="n">numFeatures</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="k">val</span> <span class="n">isFeatureContinuous</span> <span class="k">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">isContinuous</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)</span>
+</span><span class='line'>          <span class="k">if</span> <span class="o">(</span><span class="n">isFeatureContinuous</span><span class="o">)</span> <span class="o">{</span> <span class="c1">// Bins for categorical variables are already assigned.</span>
+</span><span class='line'>            <span class="n">bins</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)(</span><span class="mi">0</span><span class="o">)</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Bin</span><span class="o">(</span><span class="k">new</span> <span class="nc">DummyLowSplit</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">,</span> <span class="nc">Continuous</span><span class="o">),</span>
+</span><span class='line'>              <span class="n">splits</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)(</span><span class="mi">0</span><span class="o">),</span> <span class="nc">Continuous</span><span class="o">,</span> <span class="nc">Double</span><span class="o">.</span><span class="nc">MinValue</span><span class="o">)</span>
+</span><span class='line'>            <span class="k">for</span> <span class="o">(</span><span class="n">index</span> <span class="k">&lt;-</span> <span class="mi">1</span> <span class="n">until</span> <span class="n">numBins</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>              <span class="k">val</span> <span class="n">bin</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Bin</span><span class="o">(</span><span class="n">splits</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)(</span><span class="n">index</span><span class="o">-</span><span class="mi">1</span><span class="o">),</span> <span class="n">splits</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)(</span><span class="n">index</span><span class="o">),</span>
+</span><span class='line'>                <span class="nc">Continuous</span><span class="o">,</span> <span class="nc">Double</span><span class="o">.</span><span class="nc">MinValue</span><span class="o">)</span>
+</span><span class='line'>              <span class="n">bins</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)(</span><span class="n">index</span><span class="o">)</span> <span class="k">=</span> <span class="n">bin</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>            <span class="n">bins</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)(</span><span class="n">numBins</span><span class="o">-</span><span class="mi">1</span><span class="o">)</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Bin</span><span class="o">(</span><span class="n">splits</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)(</span><span class="n">numBins</span><span class="o">-</span><span class="mi">2</span><span class="o">),</span>
+</span><span class='line'>              <span class="k">new</span> <span class="nc">DummyHighSplit</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">,</span> <span class="nc">Continuous</span><span class="o">),</span> <span class="nc">Continuous</span><span class="o">,</span> <span class="nc">Double</span><span class="o">.</span><span class="nc">MinValue</span><span class="o">)</span>
+</span><span class='line'>          <span class="o">}</span>
+</span><span class='line'>          <span class="n">featureIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="o">(</span><span class="n">splits</span><span class="o">,</span> <span class="n">bins</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">case</span> <span class="k">_</span> <span class="k">=&gt;</span> <span class="o">???</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Bin化（又叫数据规约、分桶）这个地方比较单纯，很少调用其他的函数。这里要先界定两个名词，split 和 bin。前者表示分裂的点，后者表示分裂的点之间的线段（样本集）。由于 bin 的个数通常都是有限制的，因此即便<code>requiredSamples</code>数目是 bin 个数的平方，也是可以将这些采样到的数据收回到 Driver 端的，即<code>sampledInput</code>。Bin 化采样的这个地方有点类似于 TeraSort。之后的第一个任务是根据采样的结果找到每个特征的可行的分裂点（split），这里就看出采样的作用来了，它实际上是一种数据规约，限定了分裂点只能由采样结果计算得来。代码中的<code>while</code>循环针对于每一个 feature，对于每个 feature，我们根据前面算出来的<code>stride</code>（步长）信息计算出一个个的分裂点。</p>
+
+<p>代码的下半部分就是根绝得到的 split，找到其对应的所有的 bin。把 split 理解成点，则 bin 就是两点之间的线段，因此，只要给定两个端点就能确定一个 bin。遇到开头和结尾的地方，会用哑元<code>DummyLowSplit</code>和<code>DummyHighSplit</code>代替。</p>
+
+<p>划分了 split 和 bin 最大的好处就是分裂点由数据表中所有的表项减少到所有的 split，而在计算一些统计量的时候 bin 可以减少计算量，每个 bin 内部直接归约。</p>
+
+<p>下一步就是在 split 之中寻找最佳的分裂点。这里是一个循环，每次循环都会完成一棵树的一个完整的层次的节点的计算。当然，随着树的深度不断加深，节点的数目成倍增长，因此这里用到了一点小小的技巧：设定一个最大可同时处理的节点数目，如果那一层的节点数超过了这个范围，那么就层内分组进行训练，因此下面我们不再分析<code>findBestSplits</code>的代码，转而直接分析它所调用的<code>findBestSplitsPerGroup</code>。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'>  <span class="k">private</span> <span class="k">def</span> <span class="n">findBestSplitsPerGroup</span><span class="o">(</span>
+</span><span class='line'>      <span class="n">input</span><span class="k">:</span> <span class="kt">RDD</span><span class="o">[</span><span class="kt">TreePoint</span><span class="o">],</span>
+</span><span class='line'>      <span class="n">parentImpurities</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">],</span>
+</span><span class='line'>      <span class="n">metadata</span><span class="k">:</span> <span class="kt">DecisionTreeMetadata</span><span class="o">,</span>
+</span><span class='line'>      <span class="n">level</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span>
+</span><span class='line'>      <span class="n">nodes</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Node</span><span class="o">],</span>
+</span><span class='line'>      <span class="n">splits</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Array</span><span class="o">[</span><span class="kt">Split</span><span class="o">]],</span>
+</span><span class='line'>      <span class="n">bins</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Array</span><span class="o">[</span><span class="kt">Bin</span><span class="o">]],</span>
+</span><span class='line'>      <span class="n">timer</span><span class="k">:</span> <span class="kt">TimeTracker</span><span class="o">,</span>
+</span><span class='line'>      <span class="n">numGroups</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="mi">1</span><span class="o">,</span>
+</span><span class='line'>      <span class="n">groupIndex</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="mi">0</span><span class="o">)</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[(</span><span class="kt">Split</span>, <span class="kt">InformationGainStats</span><span class="o">)]</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">val</span> <span class="n">bestSplits</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Array</span><span class="o">[(</span><span class="kt">Split</span>, <span class="kt">InformationGainStats</span><span class="o">)](</span><span class="n">numNodes</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="k">var</span> <span class="n">node</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>    <span class="k">while</span> <span class="o">(</span><span class="n">node</span> <span class="o">&lt;</span> <span class="n">numNodes</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">val</span> <span class="n">nodeImpurityIndex</span> <span class="k">=</span> <span class="o">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">level</span><span class="o">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">node</span> <span class="o">+</span> <span class="n">groupShift</span>
+</span><span class='line'>      <span class="k">val</span> <span class="n">binsForNode</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">]</span> <span class="k">=</span> <span class="n">getBinDataForNode</span><span class="o">(</span><span class="n">node</span><span class="o">)</span>
+</span><span class='line'>      <span class="k">val</span> <span class="n">parentNodeImpurity</span> <span class="k">=</span> <span class="n">parentImpurities</span><span class="o">(</span><span class="n">nodeImpurityIndex</span><span class="o">)</span>
+</span><span class='line'>      <span class="n">bestSplits</span><span class="o">(</span><span class="n">node</span><span class="o">)</span> <span class="k">=</span> <span class="n">binsToBestSplit</span><span class="o">(</span><span class="n">binsForNode</span><span class="o">,</span> <span class="n">parentNodeImpurity</span><span class="o">)</span>
+</span><span class='line'>      <span class="n">node</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">bestSplits</span>
+</span><span class='line'>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>面对一个 800 来行的程序，压力山大。首先把里面的函数定义、注释、log 全部删掉，先看主体，稍后再慢慢关注内部函数细节。首先，<code>bestSplits</code>是个数组，意味着决策树的当前层所有的节点都会计算一个最佳分裂点。下面的 while 循环就是对每个节点找到最佳分裂点。其中<code>binsForNode</code>的意思是找到当前节点中所有的 bin。如果把决策树的每个节点看做一个过滤，那么越往叶子节点走，每个节点所有的数据就越少，因为被过滤掉的越多。最后由<code>binsToBestSplit</code>这个函数找到当前节点中所有 bin 中选出的最佳分裂点。</p>
+
+<p>看清了主干，下面按图索骥，先看<code>getBinDataForNode</code>是怎么回事：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">val</span> <span class="n">binMappedRDD</span> <span class="k">=</span> <span class="n">input</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">x</span> <span class="k">=&gt;</span> <span class="n">findBinsForLevel</span><span class="o">(</span><span class="n">x</span><span class="o">))</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">val</span> <span class="n">binAggregates</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>  <span class="n">binMappedRDD</span><span class="o">.</span><span class="n">aggregate</span><span class="o">(</span><span class="nc">Array</span><span class="o">.</span><span class="n">fill</span><span class="o">[</span><span class="kt">Double</span><span class="o">](</span><span class="n">binAggregateLength</span><span class="o">)(</span><span class="mi">0</span><span class="o">))(</span><span class="n">binSeqOp</span><span class="o">,</span><span class="n">binCombOp</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'><span class="k">def</span> <span class="n">getBinDataForNode</span><span class="o">(</span><span class="n">node</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">if</span> <span class="o">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">isClassification</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="o">???</span>
+</span><span class='line'>  <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>    <span class="c1">// Regression</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">shift</span> <span class="k">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">node</span> <span class="o">*</span> <span class="n">numBins</span> <span class="o">*</span> <span class="n">numFeatures</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">binsForNode</span> <span class="k">=</span> <span class="n">binAggregates</span><span class="o">.</span><span class="n">slice</span><span class="o">(</span><span class="n">shift</span><span class="o">,</span> <span class="n">shift</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">numBins</span> <span class="o">*</span> <span class="n">numFeatures</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">binsForNode</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>如果只看<code>getBinDataForNode</code>的逻辑的话，其实很简单，每个节点的<code>binsForNode</code>是由<code>binAggregates</code>这个变量中切了一块出来得到的。切的地方是<code>3 * node * numBins * numFeatures</code>，一共切掉<code>3 * numBins * numFeatures</code>这么大。所以关键在<code>binAggregates</code>是怎么生成的。</p>
+
+<p>首先要说明<code>binAggregates</code>这个变量内部都有些什么吧。这个变量其实是个<code>Array[Double]</code>，其中约定好了结构，即对于每个节点中的每个 feature 的每个 bin 计算三个统计量，分别为 count，sum，以及sum<sup>2</sup>。统计这三个量的意思很明显，就是均值和方差。这也解释了上面那个貌似奇怪的切分边界。具体原始数据是怎么分割到每个节点的呢？答案在<code>findBinsForLevel</code>这个函数中。</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">def</span> <span class="n">findBinsForLevel</span><span class="o">(</span><span class="n">labeledPoint</span><span class="k">:</span> <span class="kt">LabeledPoint</span><span class="o">)</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>  <span class="c1">// Calculate bin index and label per feature per node.</span>
+</span><span class='line'>  <span class="k">val</span> <span class="n">arr</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">](</span><span class="mi">1</span> <span class="o">+</span> <span class="o">(</span><span class="n">numFeatures</span> <span class="o">*</span> <span class="n">numNodes</span><span class="o">))</span>
+</span><span class='line'>  <span class="n">arr</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span> <span class="k">=</span> <span class="n">labeledPoint</span><span class="o">.</span><span class="n">label</span>
+</span><span class='line'>  <span class="k">var</span> <span class="n">nodeIndex</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>  <span class="k">while</span> <span class="o">(</span><span class="n">nodeIndex</span> <span class="o">&lt;</span> <span class="n">numNodes</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">parentFilters</span> <span class="k">=</span> <span class="n">findParentFilters</span><span class="o">(</span><span class="n">nodeIndex</span><span class="o">)</span>
+</span><span class='line'>    <span class="c1">// Find out whether the sample qualifies for the particular node.</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">sampleValid</span> <span class="k">=</span> <span class="n">isSampleValid</span><span class="o">(</span><span class="n">parentFilters</span><span class="o">,</span> <span class="n">labeledPoint</span><span class="o">)</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">shift</span> <span class="k">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">numFeatures</span> <span class="o">*</span> <span class="n">nodeIndex</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(!</span><span class="n">sampleValid</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="c1">// Mark one bin as -1 is sufficient.</span>
+</span><span class='line'>      <span class="n">arr</span><span class="o">(</span><span class="n">shift</span><span class="o">)</span> <span class="k">=</span> <span class="nc">InvalidBinIndex</span>
+</span><span class='line'>    <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>      <span class="k">var</span> <span class="n">featureIndex</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>      <span class="k">while</span> <span class="o">(</span><span class="n">featureIndex</span> <span class="o">&lt;</span> <span class="n">numFeatures</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">val</span> <span class="n">isFeatureContinuous</span> <span class="k">=</span> <span class="n">strategy</span><span class="o">.</span><span class="n">categoricalFeaturesInfo</span><span class="o">.</span><span class="n">get</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">).</span><span class="n">isEmpty</span>
+</span><span class='line'>        <span class="n">arr</span><span class="o">(</span><span class="n">shift</span> <span class="o">+</span> <span class="n">featureIndex</span><span class="o">)</span> <span class="k">=</span> <span class="n">findBin</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">,</span> <span class="n">labeledPoint</span><span class="o">,</span><span class="n">isFeatureContinuous</span><span class="o">)</span>
+</span><span class='line'>        <span class="n">featureIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">nodeIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="n">arr</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>这个函数的输入是原始数据中的每一个<code>LabeledPoint</code>，输出结果是一个数组，表示当前样本所有 feature 的所有 bin 划分。最终整体的<code>binMappedRDD</code>作用是确定每个样本的每个 feature 应该落到哪个 bin 里面。</p>
+
+<p>剩下的事情要看<code>binSeqOp</code>和<code>binComOp</code>这两个函数了。这两个函数式<code>aggregate</code>算子的参数。前者表明在一个数据分片内如何统计数据，后这说明两个分片的结果如何做合并。下面我们剥离出一些函数来看：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">def</span> <span class="n">regressionBinSeqOp</span><span class="o">(</span><span class="n">arr</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">],</span> <span class="n">agg</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">])</span> <span class="o">{</span>
+</span><span class='line'>  <span class="c1">// Iterate over all nodes.</span>
+</span><span class='line'>  <span class="k">var</span> <span class="n">nodeIndex</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>  <span class="k">while</span> <span class="o">(</span><span class="n">nodeIndex</span> <span class="o">&lt;</span> <span class="n">numNodes</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="c1">// Check whether the instance was valid for this nodeIndex.</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">validSignalIndex</span> <span class="k">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">numFeatures</span> <span class="o">*</span> <span class="n">nodeIndex</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">isSampleValidForNode</span> <span class="k">=</span> <span class="n">arr</span><span class="o">(</span><span class="n">validSignalIndex</span><span class="o">)</span> <span class="o">!=</span> <span class="nc">InvalidBinIndex</span>
+</span><span class='line'>    <span class="k">if</span> <span class="o">(</span><span class="n">isSampleValidForNode</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="c1">// actual class label</span>
+</span><span class='line'>      <span class="k">val</span> <span class="n">label</span> <span class="k">=</span> <span class="n">arr</span><span class="o">(</span><span class="mi">0</span><span class="o">)</span>
+</span><span class='line'>      <span class="c1">// Iterate over all features.</span>
+</span><span class='line'>      <span class="k">var</span> <span class="n">featureIndex</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>      <span class="k">while</span> <span class="o">(</span><span class="n">featureIndex</span> <span class="o">&lt;</span> <span class="n">numFeatures</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">// Find the bin index for this feature.</span>
+</span><span class='line'>        <span class="k">val</span> <span class="n">arrShift</span> <span class="k">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">numFeatures</span> <span class="o">*</span> <span class="n">nodeIndex</span>
+</span><span class='line'>        <span class="k">val</span> <span class="n">arrIndex</span> <span class="k">=</span> <span class="n">arrShift</span> <span class="o">+</span> <span class="n">featureIndex</span>
+</span><span class='line'>        <span class="c1">// Update count, sum, and sum^2 for one bin.</span>
+</span><span class='line'>        <span class="k">val</span> <span class="n">aggShift</span> <span class="k">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">numBins</span> <span class="o">*</span> <span class="n">numFeatures</span> <span class="o">*</span> <span class="n">nodeIndex</span>
+</span><span class='line'>        <span class="k">val</span> <span class="n">aggIndex</span> <span class="k">=</span> <span class="n">aggShift</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">featureIndex</span> <span class="o">*</span> <span class="n">numBins</span> <span class="o">+</span> <span class="n">arr</span><span class="o">(</span><span class="n">arrIndex</span><span class="o">).</span><span class="n">toInt</span> <span class="o">*</span> <span class="mi">3</span>
+</span><span class='line'>        <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span><span class="o">)</span> <span class="k">=</span> <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span><span class="o">)</span> <span class="o">+</span> <span class="mi">1</span>
+</span><span class='line'>        <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="o">)</span> <span class="k">=</span> <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="o">)</span> <span class="o">+</span> <span class="n">label</span>
+</span><span class='line'>        <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span> <span class="o">+</span> <span class="mi">2</span><span class="o">)</span> <span class="k">=</span> <span class="n">agg</span><span class="o">(</span><span class="n">aggIndex</span> <span class="o">+</span> <span class="mi">2</span><span class="o">)</span> <span class="o">+</span> <span class="n">label</span><span class="o">*</span><span class="n">label</span>
+</span><span class='line'>        <span class="n">featureIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="n">nodeIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">def</span> <span class="n">binCombOp</span><span class="o">(</span><span class="n">agg1</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">],</span> <span class="n">agg2</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">])</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>  <span class="k">var</span> <span class="n">index</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>  <span class="k">val</span> <span class="n">combinedAggregate</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">](</span><span class="n">binAggregateLength</span><span class="o">)</span>
+</span><span class='line'>  <span class="k">while</span> <span class="o">(</span><span class="n">index</span> <span class="o">&lt;</span> <span class="n">binAggregateLength</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>    <span class="n">combinedAggregate</span><span class="o">(</span><span class="n">index</span><span class="o">)</span> <span class="k">=</span> <span class="n">agg1</span><span class="o">(</span><span class="n">index</span><span class="o">)</span> <span class="o">+</span> <span class="n">agg2</span><span class="o">(</span><span class="n">index</span><span class="o">)</span>
+</span><span class='line'>    <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>  <span class="n">combinedAggregate</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>看了这两个函数，是不是感觉一目了然？前者把三个统计量聚合在<code>agg</code>这个数组中，后者来合并多个<code>agg</code>数组。</p>
+
+<p>现在决策树当前层上所有节点都得到自己节点中数据的统计量了，下一步就是为每个节点寻找最佳分裂点了：</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'><span class="k">def</span> <span class="n">binsToBestSplit</span><span class="o">(</span>
+</span><span class='line'>    <span class="n">binData</span><span class="k">:</span> <span class="kt">Array</span><span class="o">[</span><span class="kt">Double</span><span class="o">],</span>
+</span><span class='line'>    <span class="n">nodeImpurity</span><span class="k">:</span> <span class="kt">Double</span><span class="o">)</span><span class="k">:</span> <span class="o">(</span><span class="kt">Split</span><span class="o">,</span> <span class="kt">InformationGainStats</span><span class="o">)</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">logDebug</span><span class="o">(</span><span class="s">&quot;node impurity = &quot;</span> <span class="o">+</span> <span class="n">nodeImpurity</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1">// Extract left right node aggregates.</span>
+</span><span class='line'>  <span class="k">val</span> <span class="o">(</span><span class="n">leftNodeAgg</span><span class="o">,</span> <span class="n">rightNodeAgg</span><span class="o">)</span> <span class="k">=</span> <span class="n">extractLeftRightNodeAggregates</span><span class="o">(</span><span class="n">binData</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="c1">// Calculate gains for all splits.</span>
+</span><span class='line'>  <span class="k">val</span> <span class="n">gains</span> <span class="k">=</span> <span class="n">calculateGainsForAllNodeSplits</span><span class="o">(</span><span class="n">leftNodeAgg</span><span class="o">,</span> <span class="n">rightNodeAgg</span><span class="o">,</span> <span class="n">nodeImpurity</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="k">val</span> <span class="o">(</span><span class="n">bestFeatureIndex</span><span class="o">,</span><span class="n">bestSplitIndex</span><span class="o">,</span> <span class="n">gainStats</span><span class="o">)</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>    <span class="c1">// Initialize with infeasible values.</span>
+</span><span class='line'>    <span class="k">var</span> <span class="n">bestFeatureIndex</span> <span class="k">=</span> <span class="nc">Int</span><span class="o">.</span><span class="nc">MinValue</span>
+</span><span class='line'>    <span class="k">var</span> <span class="n">bestSplitIndex</span> <span class="k">=</span> <span class="nc">Int</span><span class="o">.</span><span class="nc">MinValue</span>
+</span><span class='line'>    <span class="k">var</span> <span class="n">bestGainStats</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">InformationGainStats</span><span class="o">(</span><span class="nc">Double</span><span class="o">.</span><span class="nc">MinValue</span><span class="o">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="o">)</span>
+</span><span class='line'>    <span class="c1">// Iterate over features.</span>
+</span><span class='line'>    <span class="k">var</span> <span class="n">featureIndex</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>    <span class="k">while</span> <span class="o">(</span><span class="n">featureIndex</span> <span class="o">&lt;</span> <span class="n">numFeatures</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>      <span class="c1">// Iterate over all splits.</span>
+</span><span class='line'>      <span class="k">var</span> <span class="n">splitIndex</span> <span class="k">=</span> <span class="mi">0</span>
+</span><span class='line'>      <span class="k">while</span> <span class="o">(</span><span class="n">splitIndex</span> <span class="o">&lt;</span> <span class="n">numBins</span> <span class="o">-</span> <span class="mi">1</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">val</span> <span class="n">gainStats</span> <span class="k">=</span> <span class="n">gains</span><span class="o">(</span><span class="n">featureIndex</span><span class="o">)(</span><span class="n">splitIndex</span><span class="o">)</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">gainStats</span><span class="o">.</span><span class="n">gain</span> <span class="o">&gt;</span> <span class="n">bestGainStats</span><span class="o">.</span><span class="n">gain</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">bestGainStats</span> <span class="k">=</span> <span class="n">gainStats</span>
+</span><span class='line'>          <span class="n">bestFeatureIndex</span> <span class="k">=</span> <span class="n">featureIndex</span>
+</span><span class='line'>          <span class="n">bestSplitIndex</span> <span class="k">=</span> <span class="n">splitIndex</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="n">splitIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>      <span class="n">featureIndex</span> <span class="o">+=</span> <span class="mi">1</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="o">(</span><span class="n">bestFeatureIndex</span><span class="o">,</span> <span class="n">bestSplitIndex</span><span class="o">,</span> <span class="n">bestGainStats</span><span class="o">)</span>
+</span><span class='line'>  <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="n">logDebug</span><span class="o">(</span><span class="s">&quot;best split bin = &quot;</span> <span class="o">+</span> <span class="n">bins</span><span class="o">(</span><span class="n">bestFeatureIndex</span><span class="o">)(</span><span class="n">bestSplitIndex</span><span class="o">))</span>
+</span><span class='line'>  <span class="n">logDebug</span><span class="o">(</span><span class="s">&quot;best split bin = &quot;</span> <span class="o">+</span> <span class="n">splits</span><span class="o">(</span><span class="n">bestFeatureIndex</span><span class="o">)(</span><span class="n">bestSplitIndex</span><span class="o">))</span>
+</span><span class='line'>
+</span><span class='line'>  <span class="o">(</span><span class="n">splits</span><span class="o">(</span><span class="n">bestFeatureIndex</span><span class="o">)(</span><span class="n">bestSplitIndex</span><span class="o">),</span> <span class="n">gainStats</span><span class="o">)</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>至此看似复杂的决策树已经抽丝剥茧完毕。回顾一下，三个程序优化方法分别是</p>
+
+<ul>
+<li>以 aggregate 代替 shuffle 来计算统计量；</li>
+<li>以 bin 来代替原始数据归约数据量；</li>
+<li>层次化的模型训练代替逐节点的模型训练。</li>
+</ul>
+
+
+<p>其中最重要的是第二个优化，也就是本节重点想说的：<strong>人为的数据规约降低计算复杂度</strong>。</p>
+
+<h2>结语</h2>
+
+<p>最近有点懒，现在把拖了很久的这篇文章整理一下，聊表慰藉。本文原创的思想来源于 Spark Summit 2014 Xiangrui 和 Amde 两个讲座的 slide，都很有启发和借鉴的意义，因此整理一下放在这里。做了一年的 Spark，尤其是 MLlib，现在回头来看，为什么在 Spark 平台上写一个优秀的机器学习算法这么难？（这样说有点不公平，因为在 Hadoop 上实现会更烦琐。）或许真的是现有 Spark 的抽象不适合机器学习，但是迄今为止开源社区没有更好的分布式框架的抽象可以用了。也许各大互联网公司有自己的秘密武器，不过这就不得而知了。MLlib 的本意（从名字上来看）也许是想解放 machine learner，但是现在越来越走在解放 end user的道路上了。但我始终觉得这不是良策，因为 machine leaner 开发新的机器学习程序还是很难，这样导致整个系统不具有可扩展性。也许对于机器学习没有 all in one 这种让我们省力的抽象或者平台，也许 machine learner 就该在平台和算法的世界里继续努力的奋斗。</p>
+
+<p>无论如何，好的思想值得借鉴和反思，也许本文值得一看！</p>
+
+<blockquote><p>Written with <a href="https://stackedit.io/">StackEdit</a>.</p></blockquote>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Spark Internals: Deploy, Scheduling and RDD]]></title>
+    <link href="http://yinxusen.github.io/blog/2014/06/17/spark-internals-deploy/"/>
+    <updated>2014-06-17T12:25:51+08:00</updated>
+    <id>http://yinxusen.github.io/blog/2014/06/17/spark-internals-deploy</id>
+    <content type="html"><![CDATA[<p><strong>This article is just for fun, please think carefully before reading!</strong></p>
+
+<p>毫无疑问, 你将经历的是一次奇妙之旅. 在现有的分布式系统框架内, 如果非要挑选其一可以视为艺术, 那就是现在呈现在你眼前的. Spark, 在山寨风行的大数据/分布式开源市场内, 犹若火花闪现. 这永远不是终结, 而是开天辟地的第一团火光. 星星之火, 可以燎原.</p>
+
+<p>然而, 我们不能过誉. 任何新技术的闪现都不是一蹴而就. 循环往复, 螺旋上升是技术的发展必由之途. 从百年之前的无线电技术发明, 到调频对调幅的憋屈之战, 未经开场便遭遇电视技术的碾压, 再到互联网的兴起无不展现一曲壮烈的华章. 对于Spark而言, 作为Apache开源社区旗下的一员悍勇, 是站在了巨象的肩膀上. 是的, 永远不容忽视Hadoop迄今为止的统治地位, 及其用于破旧立新的情怀.</p>
+
+<p>两百年前科学巨匠巴贝奇的差分机, 和爱达·拜伦天才般智慧的编程思想, 两人以穿越般的身姿错生在那个不属于他们的文艺复兴时代. 百年后, 图灵, 丘奇, 冯诺依曼等计算机先哲开拓了新时代. 新千年后十年, 端设备的极大普及以及”长长的线路”极大发展, 给世界人们带来了珍宝般的财富, 所谓的21世纪黑金 – 数据. 驰骋在这个时代, 计算机的世界越来越有海贼王的精彩 – 财富就在那儿, 去拿吧! – 一个崭新的时代.</p>
+
+<p>不同的是, 数据时代的one piece可不止一份. 或许是金钱诱惑的驱动(哪件技术的发展不是呢?), 或许带着一点贡献时代的情怀, 从21世纪头五年到现在, 计算机世界, 乃至全世界, 进入了大数据的时代.</p>
+
+<p>每个胸怀数据之志的计算机人都在寻找one piece的通路. Hadoop/Spark等兴起无不是众望所归, 生逢其时. 平心而论, 大数据处理平台等带来的”新技术”并非都是新技术, 也肯定不是最精尖的那些. 然而, 那些高端的生不逢时的技术, 只能是恰如猛虎卧荒丘.</p>
+
+<p>历经头5年Hadoop热潮的人们应该不会对此陌生: 一个由脚本语言粘合起来的世界. 我们写好各种code snippets, 打成jar包, 以shell script作为控制器, 以系统时间为salt制定输入输出路径, 串起逻辑流. SummingBird的出现或许可以减轻你的负担, 不过那也是近一两年的事情了. 在Spark的世界里, 我们要告诉大家的第一件事就是Driver.</p>
+
+<p>或许你可以把Driver看做Hadoop世界中的shell script, 但又远远不止. 可以说是”虽不中, 亦不远矣”. 对于Spark用户来说, Driver无处不在: 当你打开Spark Shell的时候, 你就已经开始跟Driver打交道了. 当你写下<code>val a = 1</code> 这种简单的语句时, Driver就已经开始为你忙活了. 当然, Spark Shell中有一些特殊的情况, 当你在真正应用代码中执行到这句时, 其实, 几乎什么都没发生. 在这里, 你可以把Driver当做第一次与Spark交流的大门.</p>
+
+<!--more-->
+
+
+<h3>Driver的初生</h3>
+
+<p>从client中来, 到executor中去</p>
+
+<p>Client是Driver初生的港湾. 当用户兴致勃勃的用手指敲下<code>./spark-submit</code>的时候, Client就在背后服务了, 并产生了一个名作<code>driverClient</code>的actorSystem. 随后从这个actorSystem中启动一个<code>clientActor</code>, 开始处理用户提交任务时的输入数据. 这些数据对于应用程序的运行来说都至关重要, 例如Master在什么地方, 运行时java url, 以及driver所需的CPU核数, 内存等. <code>clientActor</code>得到线程开始运行的时候, 会向Master获取一个masterActor的引用, 以便与其进行通信. clientActor同时会向Akka系统的事件流注册获取自己的关键事件. 随后driver与master通过Akka架构开始交流. 第一件事就是driver向master注册.</p>
+
+<p>如果当前Master在<code>ALIVE</code>的状态下(Master状态共有<code>ALIVE</code>, <code>STANDBY</code>, <code>RECOVERING</code>, <code>COMPLEING_RECOVERY</code>这四种), Master接受Driver的提交请求, 根据Driver带过来的自身描述文件创建Driver, 并加入到等待队列. 之后Master会主动执行一次<code>schedule</code>方法, 进行Driver(当然还包括Executor)真正的执行调度. 该调度包含了Driver和Executor的执行调度, 在此我们只说明Driver相关的逻辑. Driver提交相对简洁, 对所有的worker进行一下随机洗牌, 对于随机洗牌后的任意一个Worker, 遍历Driver等待队列, 如果当前Worker能够满足该Driver的执行, 则在该Worker上载入Driver. 最后是Master向clientActor汇报Driver提交成功的消息. 可想而知, 这里的成功提交只是说明Master认同了当前Driver, 但是很有可能该Driver还挂载在等候队列中没有被调度.</p>
+
+<p>Worker接收到Master发过来的载入Driver请求后, 会尝试启动一个<code>DriverRunner</code>, 由<code>DriverRunner</code>管理Driver的状态, 包括出错后自动重启等. 前者创建一个线程, 针对Driver的描述拼凑出Driver的运行指令, 之后使用该指令启动一个新的进程, 此时Master启动完毕. 那么这个Driver启动的到底是什么呢? 它用什么逻辑和后续的Executor交互呢? 答案就来自Driver的描述字符. 追本溯源, 这个描述字符最初是由<code>clientActor</code>拼凑之后传递给Master的, 而其中的命令又来自Client启动时的命令行参数. 聪明的你也许已经想出来了, 这里运行的Driver可不就是你在命令行输入的class中的主函数?</p>
+
+<h3>它包含了SparkContext, 就有了调度机制</h3>
+
+<p>可是你也许会感到疑惑. 当Master启动Executor, 并完成了Driver与Executor的”牵线搭桥”以后, 主控逻辑在哪里? 你所写就的简短的主函数怎样做到把任务切分扔到Executor上执行这个分布式运算过程的呢? 如果这是在Hadoop下, 我想你必不可少的要写一堆Job提交的shell命令, 甚至是一堆杂乱而没有章法的(对于新手来说)命令. 然而对于Spark来说, 看似”正经”的程序背后, 隐藏着SparkContext的秘密.</p>
+
+<p>是的, 就是你程序中那个简短的sc, 帮你完成了把普通程序变成分布式程序的任务. Sc是分布式程序的加工厂, 是凌乱的序列的清道夫, 是阶段pipeline的操盘手, 是任务投递的终结者. 当你在程序里敲下<code>sc = new SparkContext()</code>的时候, 就是上帝在创造分布式程序的曙光. 让我们从这里开始出发.</p>
+
+<p>SparkContext内容复杂, 名目繁多. 不过好在大部分都是用户不必理会的. 以其所处的位置来看, 位于程序入口和RDD操作之间, 无疑要负责提供大量的RDD生成函数. 从parallel开始, 它负责将用户给定的一个序列(Seq)变成RDD. 再看几乎是最常用的textFile, 负责从文件中读取出每一行作为RDD的一个元素, 及其胞弟wholeTextFiles可以读取一堆文件, 并把每一个文件看做RDD的一个元素. 之后是sequenceFile函数, 其跟textFile共享一类RDD, 只不过换了一下InputFormat. (关于这些InputFormat跟Spark的关系, 可以参见笔者的<strong>探寻从HDFS到Spark的高效数据通道：以小文件输入为案例</strong>) 除了这些直接生成RDD的函数, 剩下的就是使用RDD跟RDD之间的合并等操作来生成新的RDD了, 比如说union函数.</p>
+
+<p>位于程序的入口处, 另一个重要的作用就是提供机群运行的配置. “几乎所有的”分布式程序运行信息都能从SparkContext上找到. 真是名符其实的”大管家”. 首先其构造函数就是要传入一个SparkConf, 这里面存在着大量经典的 – 也可以说是恶心的 – Java property式的参数配置, 是的, 完全无法忍受的被带歪的用法! 通过这种”简单易用”的配置方式, 很多时候你只能像福尔摩斯一样, 拿着放大镜在源码的海洋里寻找丝毫的痕迹, 然后在Ah-ha的时候仿佛找到新大陆般的找到一个能用的, 相关的配置项, 修改了它, 然后也不知道它是否还会被别的函数修改, 或者使用. 最不能忍受一个控制逻辑由多种不同的方式进行参数配置, 而且各不相同, 名称之间也毫无逻辑! 好了, 吐槽到此为止, 现在来看看到底都设置了一些啥?</p>
+
+<p>Spark目前不支持程序程序运行后再修改配置文件的情况, SparkContext拿到一个配置文件之后是将其中的SparkConf深拷贝了一份, 当然, 调用getConf的时候也是深拷贝一份, 所以原始的是没法修改了. 在构造的时候, 默认情况下会载入当前Java property中以”spark”开头的所有配置信息. Master名称, Application名称, Jar包等这些当然不在话下. 还用到了所有Akka的配置信息, 也要装在这里. 因为用到了HDFS的hadoop client, 所以hadoop的相关配置也在SparkContext中, 只不过不与SparkConf混在一起.</p>
+
+<p>最后, 作为程序接入分布式系统的总入口, SparkContext还要负责大量的Job提交工作. 在之前的Hadoop时代是用户在shell中写好Job提交的声明. 在Spark中只要调用函数即可, 剩下的都被默默地做掉了. 而RDD在action的时候调用runJob, 其实是背后默默调用了DAG scheduler的runJob函数. 后者是什么? 且待下回分解.</p>
+
+<h3>名为DAG Scheduler者, 其实更像compiler</h3>
+
+<p>又是一大段冗长的代码. 我们还是按照功能分解吧, 最后清扫剩余的边角料. DAG Compiler, 嗯, 我觉得还是称作compiler更加妥当. 顾名思义, 就是一个关于DAG的Compiler(废话). 这里面有两个重点, 一是DAG来自哪里, 二是Compiler怎么做.</p>
+
+<p>上一节我们提到, SparkContext的runJob方法调用了DAG Compiler, 这是也唯一是调用DAG Compiler的地方(边角料先放到一边). 也就是说, DAG Compiler是主程序中一次调用RDD action的时候才会触发的, 那么构造DAG的地方肯定就在这个runJob里面啦, 我们去找找.</p>
+
+<p>DAG Compiler中的runJob方法调用了submitJob方法, 后者负责将一个全新的job递交给DAG Compiler. 在构造完job运行所必须的rdd(要处理的数据), func(每个节点处理数据的方法), partitions(要执行的partition索引), resultHandler(结果汇总函数), callSite(action调用位置)等信息后, 将job运行的消息发送给eventProcessActor.</p>
+
+<p>在SparkEnv中维护着一个actorSystem, 每个DAG Compiler初始化的时候会在该actorSystem下生成一个dagSchedulerActorSupervisor, 再由该actor负责生成eventProcessActor. eventProcessActor都有什么作用呢? 它来负责处理DAG Compiler中所有的事件, 依次有Job提交, stage取消, job取消, job组取消, 所有job取消, 增加Executor, 汇报Executor丢失, 任务开始, 任务得到结果, 任务完成, 任务集合失败, 重新提交失败的stage. 这里面个别现在还陌生的词汇, 在后续都会陆续提到.</p>
+
+<p>言归正传. eventProcessActor遇到job提交信息后, 开始处理job提交工作. (之所以这样做是为了使用AKKA带来的异步并发的特性.) 眼下到了紧要关头, 下面就是传说中的DAG Compiler部分了. 实际上整个Spark job是走了一条”由RDD到Stage, 由Stage到Task”的路. 提交job后, 从当前RDD (也称作final RDD) 出发, 开始构造第一个stage, 类似的, 这个stage又被称作final Stage. 该stage生成的过程中会上溯去寻找自己的parent stage. 如果finalStage生成没有问题, 则会调用submitStage函数. 在finalStage的parents没有执行之前, finalStage是没有道理去执行的, 因此该函数会先寻找其parents中没有执行的那些stage, 一直上溯到最顶端, 然后从上向下将stage通过submitMissingTasks提交出去.</p>
+
+<p>刚刚我们界定了DAG Compiler的起始和结束, 再强调一遍, 起始就是finalRDD开始生成finalStage, 结束就是所有的stage都顺利通过submitMissingTasks提交出去. 虽然finalStage是第一个调用new生成对象的, 但却是最后一个生成的, 因为最先生成的stage是最初始的那个(递归向上生成). 整个stage Compiler的过程是一个大的回环, 在getShuffleMapStage, newOrUsedStage, newStage, getParentStage之间来回调用. 无需赘言, 把握一点即可: 在没有shuffle的时会沿着DAG一路深度优先向上回溯, 遇到shuffle的时候会生成新的stage.
+(这里应该有张图)</p>
+
+<p>之后便是提交任务, 通过submitMissingTasks. 任务只有两种, 分别是ShuffleTask和ResultTask, 这与finalStage和shuffleStage也是相对应的. 由此可知, spark在运行时并没有所谓的”中间结果”, 也不会为”中间结果”单独启动task, 或者分配IO空间, 这点与Hadoop完全不同, 也是Spark比Hadoop快的原因之一. 根据partition的数目, stage被划分为一个个的task, 同一个stage划分出来的task被称作taskSet. DAG Compiler结束, 向TaskScheduler提交任务的时候是以TaskSet为单元提交的.</p>
+
+<h3>Task调度器</h3>
+
+<p>TaskScheduler的初生也是在SparkContext中完成. 根据用户传入的机群参数不同, 产生不同的TaskScheduler. TaskScheduler要面临许多脏细节. Spark底下支撑了多种资源调度, 机群模式, 针对不同的实现机制, 如粗粒度调度, mesos调度, yarn调度需要不同的方法. 因此, 使用SchedulerBackend来隐藏掉这个细节. 比如说传入 local, 那就预示着使用local模式下的TaskScheduler, 传入spark://xxx, 就会用到standalone模式, 传入mesos://xxx, yarn://xxx会分别用到不同的模式. 这些不同体现在SchedulerBackend上, 这样就可以保证TaskScheduler不用重复实现. 现在已有的”背靠背”集群模式有local_N, local_N, maxRetries, local-cluster_N, cores, memory, spark://, memsos://, zk://, simr://, yarn-standalone, yarn-cluster, yarn-client这几类.</p>
+
+<p>构成一个TaskScheduler的, 是TaskSchedulerImpl和一个Backend. 我们先来看看TaskSchedulerImpl的作用, 再从其调用Backend的地方看看后者做了什么. 经过构造函数的初始化, TaskSchedulerImpl先是设置了一堆相关变量, 而后调用initialize, 此时传入特定的SchedulerBackend开始做最后的初始化工作. 最后的初始化涉及Backend的插入, rootPool的建立, 调度方法的选择(FIFO还是Fair). 根据选择的调度方法建立SchedulableBuilder.</p>
+
+<p>总体来看, task调度由TaskScheduler, SchedulerBackend, TaskSetPool, SchedulableBuilder, 以及TaskSetManager构成的. 整体调度分为上下两层, 由SchedulerBuilder主管的TaskSet调度以及由TaskSetManager主管的task调度. DAGScheduler的任务分发都是以TaskSet为单位的, TaskScheduler拿到一个TaskSet会先把其挂载到activeTaskSet上, 并生成一个TaskSetManager给它. 之后会触发SchedulerBackend的reviveOffers函数. 后者向名为driverActor的actor发送ReviveOffers消息. 接收到消息后, 会调用SchedulerBackend的makeOffers函数. 这样做看起来有点绕, 而且全无必要. 但是这样做的结果是利用了AKKA的异步并发特性. 后者转而去TaskScheduler请求任务offer. 此时首先按照优先级顺序挑选出TaskSet, 这之前的优先级设置以及排序要么就按照FIFO的模式来, 要么就按照配置文件规定的FAIR模式来. 得到当前TaskSet之后, 就是从中选出每个Task运行. 选择Task的时候会注意locality的保证. Locality总共有三个等级, PROCESS_LEVEL, NODE_LEVEL, RACK_LEVEL. 剩下的最后一个没有显示写明的等级就是ANY_LEVEL. 至于当前任务在哪个等级, 要根据任务提交并且处于pending状态的时间. Pending的时间越长, locality受关注程度就会越小, 因为毕竟要保证任务可以执行. 最后如果在一个节点上找不到任何可以执行的task, 那么就会选择speculativeTask, 确保有任务执行.</p>
+
+<h3>Executor</h3>
+
+<p>Executor是切分后任务执行的母体. 每个application有一到多个executor, 而每个executor只能对应一个application/driver. Executor是由driver向master请求, 而后master去worker上寻找资源. 能够提供资源的worker在本地启动executor, 并汇报CPU核数, 内存等关键信息. 之后executor获得driver actor的地址, 两者开始直接联系. 等driver退出的时候, executor也会立即结束.</p>
+
+<p>spreadOut的目的是一个简单的调度策略. 用户设置之后可以进行round-robin调度, 而不是把所有的计算资源都集中在一小撮机器上. 一个worker是否会为一个application建立executor首先要检查application要求的每台slave最小的内存数是否可以达标, 之后会检查这个机器上有没有分配过executor, 如果有就不会再分配了.</p>
+
+<p>对worker的轮询从核数最大的开始. 每次循环向当前可分配的worker请求一个CPU核. 一轮下来如果核数已经满足要求就结束. 否则会再次进行轮询. 循环结束后, 就可以知道每个worker要分配多少core给executor, 下一步就是真生的分配: 开启executor.</p>
+
+<p>下一步就是master分别向worker和driver发出LaunchExecutor和ExecutorAdded的消息. Worker启动executor的管理者 – ExecutorRunner – 来负责启动或者杀死executor. 启动executor的阶段, 首先是生成一个工作目录, 之后抽取出其要执行的命令, 而后创建进程并设定环境变量. ExecutorRunner启动executor并等待后者结束, 不论是正常结束还是意外退出.</p>
+
+<p>ExecutorBackend是伟大的协同者. Akka作为骨架程序, 其重要性怎么说也不为过. ExecutorBackend其实就是Actor的一个子类型. 其与worker通信, 掌控者Executor的启动, 关闭等, 与Driver通信, 管理着任务接受和结果回放. Executor是一个一根筋程序: 启动并做初始化, 打开线程池等待任务接收并放入线程池运行, 最后返回结果. 这里最重要的部分其实是初始化部分. 因为序列化的任务过来还需要载入不同的jar包, 这就需要对classLoader进行处理, 以及jar包和一些必要的文件的传送, 所以初始化中就有一步是更新Executor的依赖.</p>
+
+<p>逻辑简洁的Executor/ExecutorBackend存在着大量的通信. 首先就是任务接收, 这部分由akka负责, 由名为taskDesc的类包装. 其次是消息反序列化, 这时候需要用到依赖的外部数据, 由Executor中的updateDependencies函数负责加载. 视URL的不同, 可以通过http/HDFS/ftp/file等多种不同的方式进行文件传输/共享. 成功反序列化任务后就可以执行任务. 此时任务代码可能会与local disk/HDFS/http/database等任意的方式访问外部数据, 最常见的就是HDFS的数据访问. 最后是结果回放, 分两种情况. 如果结果不大, 可以直接通过akka进行结果回送. 如果超过一定的阈值, 则Executor会联系BlockManager, 后者负责将数据写到某一个block中, 之后需要数据的线程从BlockManager请求数据.</p>
+
+<p>Executor上最终执行逻辑是Task, 这也是用户程序的载体. Task是以线程的方式在Executor的线程池中运行, 其首要方法就是定义的序列化和反序列化方法. 不同于一般的序列化, 除了代码本身的序列化之外, 还需要将当前SparkContext中的JAR和依赖文件打包传递. 注意, 这里只是传递metadata, 具体文件是否传输要靠后续的时间戳等判决. 除此之外, 最重要的方法就是runTask, 即任务的执行逻辑. Spark中的任务总共分为两类, 一是最终向Driver输出结果的ResultTask, 二是stage之间的ShuffleMapTask. 前者逻辑较为简单, 直接调用函数返回结果即可. Shuffle部分比较复杂, 其要在从ShuffleBlockManager申请一个writer, 通过这个writer可以讲自身执行的结果输出到本地的一个文件组, 文件组中的文件数目跟partition的数目一致, 称作bucket. 如果设置了文件consolidation, 那么这些文件组的文件实际上是合并成一个文件存储.</p>
+
+<h3>作为分布式语言的RDD</h3>
+
+<p>RDD存在的终极目的, 也是Matei在博士论文中不断强调的一点, 就是”数据共享”. 所有的分布式系统都在关注数据共享, 其本质也都是数据共享, 但RDD是其中最成功的一例. MapReduce/Hadoop以HDFS来共享数据, RAMCloud以内存共享数据, Redis作为持久化KV存储共享数据, Memcached以内存共享数据, 参数服务器以内存共享数据, 但是RDD的几点假设使得RDD有最佳的弹性, 可以简单的实现流处理引擎, 图处理引擎, 关系数据库引擎, 甚至机器学习引擎. RDD强悍的模拟能力来源于其数据共享的抽象与假设.</p>
+
+<p>RDD的成功关键之一就是RDD不会改变, 因此是无状态的, 这就给予RDD简单的容错机制, lineage容错.</p>
+
+<p>RDD成功的关键之二就是RDD的粗粒度, 批量处理的特性, 这使得事情变得简单.</p>
+
+<p>RDD的成功关键之三, 就是其函数复合的能力, 这是其”内存计算”的本质所在. 如同10多年前的X100关系数据库系统, RDD其实实现的是cache级别的数据计算外加内存作为cache.</p>
+
+<p>RDD成功关键之四, 是其partition可制定的特性. 不过, 其他系统也支持数据划分, 但是没有一个系统的数据划分指定如同spark这样简单. Partition的存在, 简化了很多设计, 也给更优质的”数据本地性”带来可能.</p>
+
+<p>RDD还可以处理straggler的存在, 通过选择久未完成的任务重做.</p>
+
+<p>下面来看几个经典的RDD设计, 来明白为什么RDD的设计算作”艺术”.
+以数据共享为导向的RDD
+几种颇具影响力的RDD设计, 如MapRDD, 笛卡尔积RDD, AllReduceRDD, slideRDD…</p>
+
+<p>来看看MappedRDD, 作为咱们的”开胃菜”. 从MappedRDD可以看出来, 有两个方法在RDD中是必须实现的. 第一个就是getPartitions方法, 这个方法决定了你如何找到每个数据分片. 第二个方法是compute方法, 该方法告诉你每个partition做什么样的处理以得到当前的RDD. 对于MappedRDD而言, 它会享有其双亲的partition分配. 而就compute而言, 它将UDF作用于RDD分片中的每个元素. (为什么MappedRDD有可能改变partition而MapValuesRDD不会? 有点搞不明白.)</p>
+
+<p>作为fault-tolerance的RDD, 但是同时也有缺点
+LLC Cache中的RDD (pipeline), 内存中的RDD</p>
+
+<h3>Spark提供的多种启动方式</h3>
+
+<p>撇去Yarn/Mesos/Tachyon这类复杂的资源管理, 单独启动一个standalone的spark集群是非常容易的, 而且用不了那么复杂的脚本. “All in one”的方式是sbt assembly得到一个整体的jar包, 所有的内容都在这里了, 包括scala的库函数. 当然, java最原生的那些包肯定不能再包裹在里面了(那就没完没了了). 有了All in one的jar包, 指定其到classpath中去, 就可以随意调用spark的各个模块.</p>
+
+<p>不过assembly这个包也稍嫌太大了. 我们现在给spark集群“瘦身”. 实际上, 只需要core/package一下, 拿到core.jar及其相应的第三方依赖就可以启动spark集群了. 其他的所有模块都可以看做spark集群的应用, 启动driver的时候需要通过&mdash;jar变量指定这些jar包, 然后spark集群其他的worker会去下载相应的依赖库.</p>
+
+<p>Master/Worker启动较为简单, 脚本调用java启动相应的类, 作为后台守护进程. 这个CS架构模式建立起来之后, Master就等待应用提交. 值得一提的是为了提高分布式系统的鲁棒性, 会有一个elect leader的过程. 启动的时候, Master会建立一个actor, 作为Leader election的代理. 这个actor向master actor发送ElectedLeader的信息. 选主的过程是由ZooKeeper来管理的. (这里的fault tolerance还没完全掌握.)</p>
+
+<p>Master监听在适当的端口上, 默认是7077. 剩下的就是Application向Master注册了. Driver正是Application的载体, 也是Application向Master注册的产物. 这里存在着两种方式启动Driver. 以Spark内部自带的程序为例, 可以通过spark-class启动你的Application, 这是, 当前机器就成为了你的Driver, 其负责DAG Scheduling, task scheduling, 以及错误处理, 结果收集等种种问题. 然而, 这种场景下会有一些问题. 通常而言, Master/Worker都启动在云端, 或者你的服务器集群, 而提交工作的地点往往是你的开发机. 两者存在着严重的网络通信状况不友好的情况, 另外, 自己的开发机也存在着内存不足, 处理能力有限等约束. Driver作为分布式程序运行的”管家”, 这种严格限制管家能力的做法确实不恰当的. 因此, 通常会使用第二种注册方法.</p>
+
+<p>使用spark-submit脚本, 本地会启动一个deploy进程, 该进程负责联系Master. 与之前不同, 该进程向Master请求寻找一个Worker作为Driver的host机器. 意即, Driver不在开发机本身, 而是在集群中的某个机器上. Worker上启动一个Driver, 这个想法跟启动一个Executor一样自然, 而且实现也确实如此. Master的调度运行的时候会率先调度所有的Driver请求, Worker接收到Driver的请求时, 会启动一个DriverRunner线程, 该线程负责启动一个Driver进程, 该进程将相应的class/jar下载到本地, 之后根据客户端上传的Driver命令行启动Driver. 不过, 既然Driver已经在云端启动, 那么怎么将最后的结果返回呢? (log打印在哪里? 结果返回到何处?)</p>
+
+<p>Spark-submit
+Compute-classpath
+等等</p>
+
+<ul>
+<li><p>背景: 程序呓语</p></li>
+<li><p>用户程序与driver</p></li>
+<li><p>Driver的初生</p></li>
+<li><p>Spark独立式资源调度: 从worker到executor</p></li>
+<li><p>Driver与master</p></li>
+<li><p>Master与worker</p></li>
+<li><p>Worker到executor</p></li>
+<li><p>Driver与executor</p></li>
+<li><p>Spark的信息总线</p></li>
+<li><p>Spark DAG编译: 从程序片段到实际任务</p></li>
+<li><p>Spark RDD与lineage容错</p></li>
+<li><p>Transformation与action</p></li>
+<li><p>RDD与stage划分</p></li>
+<li><p>Stage中task划分</p></li>
+<li><p>task序列化</p></li>
+<li><p>DAG级别容错</p></li>
+<li><p>Spark任务调度: 从实际任务到多机运行时</p></li>
+<li><p>Sparrow: 支持每秒百万级别的任务投递</p></li>
+<li><p>Task反序列化</p></li>
+<li><p>任务级别容错</p></li>
+<li><p>背后的故事: Akka</p></li>
+<li><p>Spark RDD: 一种全新的分布式编程语言</p></li>
+<li><p>函数式编程与monad</p></li>
+<li><p>RDD transformation与复合函数</p></li>
+<li><p>Iterator的诡计</p></li>
+<li><p>Spark与Hadoop的对比分析</p></li>
+<li><p>Driver之于shell coordinator</p></li>
+<li><p>RDD transformation/action 之于map/reduce</p></li>
+<li><p>复合函数之于HDFS数据交换</p></li>
+<li><p>结语</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Crazy Small Files in HDFS]]></title>
+    <link href="http://yinxusen.github.io/blog/2014/03/11/crazy-small-files-in-hdfs/"/>
+    <updated>2014-03-11T16:28:47+08:00</updated>
+    <id>http://yinxusen.github.io/blog/2014/03/11/crazy-small-files-in-hdfs</id>
+    <content type="html"><![CDATA[<h2>Background</h2>
+
+<p>2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the core of LDA &ndash; the Gibbs sampling, I find that there are some trivial matters in the way of creating a usable LDA. Mostly, they are the pre-processing of text files. For the word segmentation, both Chinese and English, I wrap Lucene with a piece of scala code to support that, just like what <a href="http://www.scalanlp.org/">ScalaNLP</a> does. But the input format traps me lots of time.</p>
+
+<p>The standard input format of Spark is from the interface called <code>textFiles(path, miniSplit)</code> in the <code>SparkContext</code> class. But it is a line processor, which digest one line each time. However what I want is a KV processor, i.e. I need an interface which can return me a KV pair (fileName, content) given a directory path. So I try to write my own <code>InputFormat</code>.</p>
+
+<p>Firstly, I try to use the <code>lineReader</code> and handle the fragments of blocks myself, later I find that it&rsquo;s both ugly and unnecessary, just as the code list below. I have to glue them together with a fixed seperator &ndash; &lsquo;\n&rsquo;. Instead of that, I use a more low level interface named <code>FSDataInputStream</code> to read an entire block once time. However, there are still some details need to be improved. Here, let&rsquo;s begin our explore.</p>
+
+<figure class='code'><figcaption><span>lineReader version RecordReader (the terrible version) - BatchFileRecordReader.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="cm">/**</span>
+</span><span class='line'><span class="cm">     * Reads an entire block contents. Note that files which are larger than the block size of HDFS</span>
+</span><span class='line'><span class="cm">     * are cut by HDFS, then there are some fragments. File names and offsets are keep in the key,</span>
+</span><span class='line'><span class="cm">     * so as to recover entire files later.</span>
+</span><span class='line'><span class="cm">     *</span>
+</span><span class='line'><span class="cm">     * Note that &#39;\n&#39; substitutes all other line breaks, such as &quot;\r\n&quot;.</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">next</span><span class="o">(</span><span class="n">BlockwiseTextWritable</span> <span class="n">key</span><span class="o">,</span> <span class="n">Text</span> <span class="n">value</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">key</span><span class="o">.</span><span class="na">fileName</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="na">getName</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">key</span><span class="o">.</span><span class="na">offset</span> <span class="o">=</span> <span class="n">pos</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">value</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">pos</span> <span class="o">&gt;=</span> <span class="n">end</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">Text</span> <span class="n">blockContent</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Text</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">Text</span> <span class="n">line</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Text</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">while</span> <span class="o">(</span><span class="n">pos</span> <span class="o">&lt;</span> <span class="n">end</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">pos</span> <span class="o">+=</span> <span class="n">reader</span><span class="o">.</span><span class="na">readLine</span><span class="o">(</span><span class="n">line</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">blockContent</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">line</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(),</span> <span class="mi">0</span><span class="o">,</span> <span class="n">line</span><span class="o">.</span><span class="na">getLength</span><span class="o">());</span>
+</span><span class='line'>            <span class="n">blockContent</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">LFs</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">LFs</span><span class="o">.</span><span class="na">length</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">totalLength</span> <span class="o">&lt;</span> <span class="n">blockContent</span><span class="o">.</span><span class="na">getLength</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">value</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">blockContent</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(),</span> <span class="mi">0</span><span class="o">,</span> <span class="n">totalLength</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">value</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">blockContent</span><span class="o">.</span><span class="na">getBytes</span><span class="o">());</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<!--more-->
+
+
+<h2>LDA best practice:</h2>
+
+<p>I think there are two common ways to use LDA in practice. First is the use in experimental condition, say, you have a bunch of small files on your disk. Then you want to upload them into HDFS, and call LDA in Spark. This is a usual way if you just want to do some experiments with LDA. In other words, it is an off-line training process. The second way of using LDA is an industrial use. You may have a streaming pipe, which feeds new data from Twitter or some other websites into your system. You may choose to put those data into a distributed storage such as HDFS or HBase, or you just process the data stream.</p>
+
+<p>Think them boldly, they are totally different. With respect to the usage of LDA, we should take care of the two scenarios simultaneously. Both of them are useful so we should not give up each of them.</p>
+
+<h2>Offline scenario of LDA</h2>
+
+<p>In the offline scenario, maybe you are not responsible for pre-processing. Instead, you just leave it to the end-user. Users transform the raw texts into the format you specify, and upload them into HDFS so your LDA application can read them directly. In this way, what we need to do is just specify the input format. What a relief !</p>
+
+<p>Maybe you can help end-users one step more. You write a program, sequential or parallel, whichever is OK, to help the pre-processing for end-user. Just like what Mahout does. End-user may write an ugly shell program as coordinator, to control the overall workflow. In this way, you can write a program to transform the small files (raw texts) into a huge file which lines represents texts, with filenames in the front of the line plus a separator.</p>
+
+<p>But, I think a better way is melding the pre-process with LDA. What the end-user does is just upload his raw texts on HDFS. In this way, we must provide the function to read all texts and their corresponding filenames in. Then we implement a <code>CombineFileInputFormat</code>, a <code>CombineFileRecordReader</code>, a <code>FileLineWritable</code> and an interface looks like <code>textFiles</code> to support the scenario.</p>
+
+<figure class='code'><figcaption><span>Interface exposed to end-user - MLUtils.scala </span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'>  <span class="cm">/**</span>
+</span><span class='line'><span class="cm">   * Reads a bunch of small files from HDFS, or a local file system (available on all nodes), or any</span>
+</span><span class='line'><span class="cm">   * Hadoop-supported file system URI, and return an RDD[(String, String)].</span>
+</span><span class='line'><span class="cm">   *</span>
+</span><span class='line'><span class="cm">   * @param path The directory you should specified, such as</span>
+</span><span class='line'><span class="cm">   *             hdfs://[address]:[port]/[dir]</span>
+</span><span class='line'><span class="cm">   *</span>
+</span><span class='line'><span class="cm">   * @param minSplits Suggested of minimum split number</span>
+</span><span class='line'><span class="cm">   *</span>
+</span><span class='line'><span class="cm">   * @return RDD[(fileName: String, content: String)]</span>
+</span><span class='line'><span class="cm">   *         i.e. the first is the file name of a file, the second one is its content.</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="k">def</span> <span class="n">smallTextFiles</span><span class="o">(</span><span class="n">sc</span><span class="k">:</span> <span class="kt">SparkContext</span><span class="o">,</span> <span class="n">path</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">minSplits</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">RDD</span><span class="o">[(</span><span class="kt">String</span>, <span class="kt">String</span><span class="o">)]</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">fileBlocks</span> <span class="k">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">hadoopFile</span><span class="o">(</span>
+</span><span class='line'>      <span class="n">path</span><span class="o">,</span>
+</span><span class='line'>      <span class="n">classOf</span><span class="o">[</span><span class="kt">BatchFileInputFormat</span><span class="o">],</span>
+</span><span class='line'>      <span class="n">classOf</span><span class="o">[</span><span class="kt">BlockwiseFileKey</span><span class="o">],</span>
+</span><span class='line'>      <span class="n">classOf</span><span class="o">[</span><span class="kt">BytesWritable</span><span class="o">],</span>
+</span><span class='line'>      <span class="n">minSplits</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">fileBlocks</span><span class="o">.</span><span class="n">mapPartitions</span> <span class="o">{</span> <span class="n">iterator</span> <span class="k">=&gt;</span>
+</span><span class='line'>      <span class="k">var</span> <span class="n">lastFileName</span> <span class="k">=</span> <span class="s">&quot;&quot;</span>
+</span><span class='line'>      <span class="k">val</span> <span class="n">mergedContents</span> <span class="k">=</span> <span class="nc">ArrayBuffer</span><span class="o">.</span><span class="n">empty</span><span class="o">[(</span><span class="kt">String</span>, <span class="kt">Text</span><span class="o">)]</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">for</span> <span class="o">((</span><span class="n">block</span><span class="o">,</span> <span class="n">content</span><span class="o">)</span> <span class="k">&lt;-</span> <span class="n">iterator</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">block</span><span class="o">.</span><span class="n">fileName</span> <span class="o">!=</span> <span class="n">lastFileName</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">mergedContents</span><span class="o">.</span><span class="n">append</span><span class="o">((</span><span class="n">block</span><span class="o">.</span><span class="n">fileName</span><span class="o">,</span> <span class="k">new</span> <span class="nc">Text</span><span class="o">()))</span>
+</span><span class='line'>          <span class="n">lastFileName</span> <span class="k">=</span> <span class="n">block</span><span class="o">.</span><span class="n">fileName</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">mergedContents</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">_2</span><span class="o">.</span><span class="n">append</span><span class="o">(</span><span class="n">content</span><span class="o">.</span><span class="n">getBytes</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">content</span><span class="o">.</span><span class="n">getLength</span><span class="o">)</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">mergedContents</span><span class="o">.</span><span class="n">map</span> <span class="o">{</span> <span class="k">case</span> <span class="o">(</span><span class="n">fileName</span><span class="o">,</span> <span class="n">content</span><span class="o">)</span> <span class="k">=&gt;</span>
+</span><span class='line'>        <span class="o">(</span><span class="n">fileName</span><span class="o">,</span> <span class="n">content</span><span class="o">.</span><span class="n">toString</span><span class="o">)</span>
+</span><span class='line'>      <span class="o">}.</span><span class="n">iterator</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I am not mean that it&rsquo;s the best practice. Indeed, it is very bad to put lots of small files on HDFS, for it will occupy so many index entries than bad performance will occur. I just talk about one feasible way. However, there are some tangle problems we must solve.</p>
+
+<p>First of all is the block size of your HDFS. Although we mean &ldquo;small files&rdquo;, but how small it is? Will its size larger than a single block in HDFS? The answer is Yes, it is possible. So we must handle the joint of blocks for each file, especially when the file is a multi-byte one, say, UTF encoded. Characters on the edge of blocks will be separated into two parts. We must take the responsibility to merge them together seamlessly.</p>
+
+<p>The key point is, we do not like shuffle, especially the unnecessary one. We hope that blocks of each file could be stay in the same node, so that we can merge them together without shuffle. As with the <a href="http://www.idryman.org/blog/2013/09/22/process-small-files-on-hadoop-using-combinefileinputformat-1/">blog</a> says, if we override the <code>isSplitable()</code> function and set the return value to false, then we can keep a single file in the same <code>split</code>. <code>HadoopRDD</code> treats a <code>split</code> as a single partition. If so, we just need to merge blocks of a single file in one partition without any shuffle. Very happy!</p>
+
+<p>However, we find that what the blog says is wrong. The <code>isSplitable()</code> is really useful, but just for <code>FileInputFormat</code>, which is the parent class of <code>CombineFileInputFormat</code>. The latter has a very complicated logic to, you know, divide blocks into splits. However, in order to improve the read performance, <code>CombineFileInputFormat</code> constructs a node list and a rack list, to chain blocks in the same node, or the same rack together, and send them into the same split. Remember that HDFS has replications. If there are 3 replicas of a block, then <code>CombineFileInputFormat</code> could have the possibility to read any of the 3 replications, <del>so we cannot ensure that the class will read any blocks from any nodes! It seems that a global shuffle is inevitable.</del></p>
+
+<p>Funny, we also find that there is a class named <code>MultiFileInputFormat</code>, which is the predecessor of <code>CombineFileInputFormat</code>. It is deprecated now, because of the low efficiency due to unawareness of data locality (per node / rack).</p>
+
+<p><del>There must be some trade-offs here. We should solve the shuffle in HDFS level, or we need solve the shuffle in Spark level. If sizes of all files are smaller than the block size, there is nothing hard to solve. But we cannot assume things like that.</del></p>
+
+<h2>Online scenario of LDA</h2>
+
+<p>Now let&rsquo;s turn into another direction. Note that a online product will never take the way described above. You know, people comes from data process division would not be silly to save all raw texts in local disks, then upload it to servers when processing. Massive data, in my opinion, should be stay in an appropriate place. In this scenario, raw texts or web page should be stored in a KV store, such as HBase (facebook has a nice <a href="http://research.cs.wisc.edu/adsl/Publications/fbmessages-fast14.pdf">paper</a> talking about the performance issues of HBase atop of HDFS). Small texts or articles should be treated same with pictures from websites. So, in reality, HBase will be used. However, Spark has no external storage except HDFS and local disk. So I think it is the time to add new storage.</p>
+
+<h2>In case of using a our own customized partitioner</h2>
+
+<p>Ah&hellip; It&rsquo;s awful! You know what, one of the reasons than Spark beats its counterparts is customized partitioners. It is the first time that you can arrange/rearrange your items according to your wishes such easily. One idea to settle our problem is using a customized partitioner to rearrange our KV pairs. However, new partitioner is useful only when we do join of two RDDs iteratively, such as <code>PageRank</code>. But if we only need to shuffle things once time, it will be helplessness, for you cannot avoid the first-time shuffle.</p>
+
+<h2>Where the shuffle from? How to do trade-off?</h2>
+
+<p>We talked about needless shuffle just now. So question is, where is the shuffle from, and how to do trade-off? First, huge-files (or small files with smaller block size) could be cut off due to the fixed block size, so we want blocks belong to a single file could stay in the same split (partition, in dialect of Spark), then we can combine them together to recover the single file without any shuffle. The process is essential, because there will be multi-bytes characters such as UTF could be split.</p>
+
+<p>Second, <code>CombineFileInputFormat</code> cannot preserve the property for us, due to the consideration of efficiency (see <code>CombineFileInputFormat</code> and <code>MultiFileInputFormat</code> as an example). Mostly because of the replication in HDFS, the fault tolerance function in HDFS, blocks of a single file could be read at any nodes.</p>
+
+<p>So there are the trade-offs between &ldquo;shuffle HDFS level&rdquo; with &ldquo;shuffle Spark level&rdquo;, and between &ldquo;efficiency when reading blocks&rdquo; with &ldquo;efficiency due to shuffle-free&rdquo;, and eventually between &ldquo;efficiency&rdquo; with &ldquo;security&rdquo;.</p>
+
+<h2>Take a deep breath &ndash; Full disclosure of locaility in Hadoop</h2>
+
+<p>To get into the secret of locaility of Hadoop IO, I have to look deep into <code>InputFormat</code> code in <code>mapred</code>. Due to the use of Spark, I choose <code>FileInputFormat</code> as the breach. First you should keep these concepts in mind, which will be used commonly later. They are <em>rack</em>, <em>node</em>, <em>file</em>, <em>block</em>, <em>replica</em>. A rack is composed of several nodes, nodes are machines composing HDFS in Hadoop. A file is composed of several blocks. A block could have several replicas, usually 3 copies. Note that your Hadoop workers could cover all HDFS nodes, but there could also mismatch between Hadoop workers and HDFS nodes. Note also that replicas of a block are usually span different racks, due to the consideration of robustness.</p>
+
+<p>Things could be a little bit more complicated, if we add the workers of Hadoop in. Program could span across different workers, data could span across different nodes. So, question is, how to arrange the mapping of programs in each worker and blocks in each node, to get the best locaility, i.e. the less network communication when reading files on HDFS?</p>
+
+<p>This is not easy, since there are many layers between program with block. Program is aware of file directly. File divided into several blocks. Block could be located in each nodes, and its replicas could be located in any other nodes. Different nodes could in different racks. Let&rsquo;s begin from our program. Take Spark as an example, you may call <code>hadoopRDD = sc.textFile(path)</code> to tell Spark read a file in. The path could be a local disk path, or more commonly, a HDFS path. <code>hadoopRDD</code> is usually partitioned for distributed computing. So, where is the partition information from? The answer is <code>Split</code> in HDFS. <code>Split</code>, or more specifically, <code>FileSplit</code>, which is used in <code>FileInputFormat</code>. <code>FileSplit</code> is an approach to arrange the mapping of <strong>blocks and programs</strong>.</p>
+
+<p>Each <code>FileSplit</code> is a block set, in which blocks will be computed in the same worker, i.e. they are partitioned together. To preserve the locaility, <code>FileSplit</code> takes lots of efforts to place appropriate blocks together. Such as contribution computing, and node &lt;&ndash;> block, rack &lt;&ndash;> block double linked lists, etc. Note that shuffle in Spark is only related to the <code>Split</code>, because <code>Split</code> serves as a layer to shield the details in HDFS, which means that, if and only if we put blocks of an entire file into the same <code>Split</code>, our Spark is then &ldquo;shuffle-free&rdquo;. But we cannot arrange different small files into a split in an random order, because different small files could be in everywhere on the HDFS cluster. If we put two files which are far apart in the same <code>Split</code>, bad performance will occur. Here we degenerate the program &ndash; block mapping to <strong>split &ndash; block</strong> mapping.</p>
+
+<h3>Node/Rack contribution computing</h3>
+
+<p>We should remind ourselves that there is little chance to put blocks in the same node in the same <code>Split</code>, because we cannot directly access blocks, instead we just specify the file path. Suppose that we have a <code>Split</code>, in which there are 3 blocks, and come from 8 nodes. 8 nodes belong to 4 racks. Moreover, each block has 3 replicas in total. Let&rsquo;s assume that the lengths of 3 blocks are 100, 150, 75, respectively. How to arrange the <code>perferedLocation</code> in this scenario? Namely, on which workers should the <code>Split</code> be processed?</p>
+
+<p><img src="http://yinxusen.github.io/images/2014/03/pic-1.png" alt="pic-1" /></p>
+
+<p>First of all, we all agree that the <code>preferedLocation</code> should be a subset of all nodes of our block. In our example, it would be a subset of [h1 &hellip; h8]. The second is, how to sort the subset, so as to make &ldquo;the best&rdquo; node at first, then &ldquo;the second-best&rdquo; one, &hellip;</p>
+
+<p>There are two different ways to arrange the <code>preferedLocation</code>&ndash; the rack-aware way and the rack-free way. Let&rsquo;s first decide what is the criteria of sort, i.e. what kind of node is &ldquo;the best&rdquo;? As illustrated in the picture above, we define a concept named &ldquo;effective size&rdquo;. Effective size of a node is how many effective bytes of data of the split on this node. Effective size of a rack is how many effective bytes of data of the split on this rack. What effective bytes means is distinguishing block size. Say, Rack4 has two blocks, each block&rsquo;s size is 75. But the effective size of Rack4 is not 150, it is still 75, because the two blocks are the same &ndash; they are replicas.</p>
+
+<p>The rack-aware way is that we treate rack the same important with node. After we get the effective size, we can give them an order as below:</p>
+
+<ol>
+<li>Rack 2 (250)
+
+<ol>
+<li>h4 (150)</li>
+<li>h3 (100)</li>
+</ol>
+</li>
+<li>Rack 1 (175)
+
+<ol>
+<li>h1 (175)</li>
+<li>h2 (100)</li>
+</ol>
+</li>
+<li>Rack 3 (150)
+
+<ol>
+<li>h5 (150)</li>
+<li>h6 (150)</li>
+</ol>
+</li>
+<li>Rack 4 (75)
+
+<ol>
+<li>h7 (75)</li>
+<li>h8 (75)</li>
+</ol>
+</li>
+</ol>
+
+
+<p>So the priority order is <strong>h4 > h3 > h1 > h2 > h5 > h6 > h7 > h8</strong>.</p>
+
+<p>In the other way, the rack-free way is simple. It just ignore the rack information, and sorts nodes via effective bytes of nodes:</p>
+
+<ol>
+<li>h1 (175)</li>
+<li>h4 (150)</li>
+<li>h5 (150)</li>
+<li>h6 (150)</li>
+<li>h2 (100)</li>
+<li>h3 (100)</li>
+<li>h7 (75)</li>
+<li>h8 (75)</li>
+</ol>
+
+
+<p>Then the order is <strong>h1 > h4 > h5 > h6 > h2 > h3 > h7 > h8</strong>.</p>
+
+<p>For more details, see this <a href="https://github.com/apache/hadoop-common/blob/release-1.0.4/src/test/org/apache/hadoop/mapred/TestGetSplitHosts.java">test code</a>.</p>
+
+<h3>Double linked lists</h3>
+
+<p><code>CombineFileInputFormat</code> chooses another way to keep locaility. It uses double linked list to chain blocks together, then sweep the chain per node, then per rack, to generate locaility-preserved split. This is cool if all small files are smaller than one block size. But if there is file content span across two blocks or more, especially the content has UTF8 code, it will get worse.</p>
+
+<figure class='code'><figcaption><span>Double linked lists sweep for constructing split - CombineFileInputFormat.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>  <span class="cm">/**</span>
+</span><span class='line'><span class="cm">   * Return all the splits in the specified set of paths</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="kt">void</span> <span class="nf">getMoreSplits</span><span class="o">(</span><span class="n">JobConf</span> <span class="n">job</span><span class="o">,</span> <span class="n">Path</span><span class="o">[]</span> <span class="n">paths</span><span class="o">,</span>
+</span><span class='line'>                             <span class="kt">long</span> <span class="n">maxSize</span><span class="o">,</span> <span class="kt">long</span> <span class="n">minSizeNode</span><span class="o">,</span> <span class="kt">long</span> <span class="n">minSizeRack</span><span class="o">,</span>
+</span><span class='line'>                             <span class="n">List</span><span class="o">&lt;</span><span class="n">CombineFileSplit</span><span class="o">&gt;</span> <span class="n">splits</span><span class="o">)</span>
+</span><span class='line'>    <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// all blocks for all the files in input set</span>
+</span><span class='line'>    <span class="n">OneFileInfo</span><span class="o">[]</span> <span class="n">files</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// mapping from a rack name to the list of blocks it has</span>
+</span><span class='line'>    <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;</span> <span class="n">rackToBlocks</span> <span class="o">=</span>
+</span><span class='line'>                              <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// mapping from a block to the nodes on which it has replicas</span>
+</span><span class='line'>    <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">,</span> <span class="n">String</span><span class="o">[]&gt;</span> <span class="n">blockToNodes</span> <span class="o">=</span>
+</span><span class='line'>                              <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">,</span> <span class="n">String</span><span class="o">[]&gt;();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// mapping from a node to the list of blocks that it contains</span>
+</span><span class='line'>    <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;</span> <span class="n">nodeToBlocks</span> <span class="o">=</span>
+</span><span class='line'>                              <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// process all nodes and create splits that are local</span>
+</span><span class='line'>    <span class="c1">// to a node. </span>
+</span><span class='line'>    <span class="k">for</span> <span class="o">(</span><span class="n">Iterator</span><span class="o">&lt;</span><span class="n">Map</span><span class="o">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span>
+</span><span class='line'>         <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;&gt;</span> <span class="n">iter</span> <span class="o">=</span> <span class="n">nodeToBlocks</span><span class="o">.</span><span class="na">entrySet</span><span class="o">().</span><span class="na">iterator</span><span class="o">();</span>
+</span><span class='line'>         <span class="n">iter</span><span class="o">.</span><span class="na">hasNext</span><span class="o">();)</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">Map</span><span class="o">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;</span> <span class="n">one</span> <span class="o">=</span> <span class="n">iter</span><span class="o">.</span><span class="na">next</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">nodes</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">one</span><span class="o">.</span><span class="na">getKey</span><span class="o">());</span>
+</span><span class='line'>      <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;</span> <span class="n">blocksInNode</span> <span class="o">=</span> <span class="n">one</span><span class="o">.</span><span class="na">getValue</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="c1">// for each block, copy it into validBlocks. Delete it from </span>
+</span><span class='line'>      <span class="c1">// blockToNodes so that the same block does not appear in </span>
+</span><span class='line'>      <span class="c1">// two different splits.</span>
+</span><span class='line'>      <span class="k">for</span> <span class="o">(</span><span class="n">OneBlockInfo</span> <span class="n">oneblock</span> <span class="o">:</span> <span class="n">blocksInNode</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">blockToNodes</span><span class="o">.</span><span class="na">containsKey</span><span class="o">(</span><span class="n">oneblock</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">validBlocks</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">oneblock</span><span class="o">);</span>
+</span><span class='line'>          <span class="n">blockToNodes</span><span class="o">.</span><span class="na">remove</span><span class="o">(</span><span class="n">oneblock</span><span class="o">);</span>
+</span><span class='line'>          <span class="n">curSplitSize</span> <span class="o">+=</span> <span class="n">oneblock</span><span class="o">.</span><span class="na">length</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="c1">// if the accumulated split size exceeds the maximum, then </span>
+</span><span class='line'>          <span class="c1">// create this split.</span>
+</span><span class='line'>          <span class="k">if</span> <span class="o">(</span><span class="n">maxSize</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">curSplitSize</span> <span class="o">&gt;=</span> <span class="n">maxSize</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="c1">// create an input split and add it to the splits array</span>
+</span><span class='line'>            <span class="n">addCreatedSplit</span><span class="o">(</span><span class="n">job</span><span class="o">,</span> <span class="n">splits</span><span class="o">,</span> <span class="n">nodes</span><span class="o">,</span> <span class="n">validBlocks</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">curSplitSize</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+</span><span class='line'>            <span class="n">validBlocks</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
+</span><span class='line'>          <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>      <span class="c1">// if there were any blocks left over and their combined size is</span>
+</span><span class='line'>      <span class="c1">// larger than minSplitNode, then combine them into one split.</span>
+</span><span class='line'>      <span class="c1">// Otherwise add them back to the unprocessed pool. It is likely </span>
+</span><span class='line'>      <span class="c1">// that they will be combined with other blocks from the same rack later on.</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">minSizeNode</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">curSplitSize</span> <span class="o">&gt;=</span> <span class="n">minSizeNode</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">// create an input split and add it to the splits array</span>
+</span><span class='line'>        <span class="n">addCreatedSplit</span><span class="o">(</span><span class="n">job</span><span class="o">,</span> <span class="n">splits</span><span class="o">,</span> <span class="n">nodes</span><span class="o">,</span> <span class="n">validBlocks</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">for</span> <span class="o">(</span><span class="n">OneBlockInfo</span> <span class="n">oneblock</span> <span class="o">:</span> <span class="n">validBlocks</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">blockToNodes</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">oneblock</span><span class="o">,</span> <span class="n">oneblock</span><span class="o">.</span><span class="na">hosts</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>      <span class="n">validBlocks</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">nodes</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">curSplitSize</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>How about read?</h3>
+
+<p>After the discussion above, we know how MapReduce program keep locaility when composing <code>Split</code> with blocks. We are very happy with the sorted <code>perferedLocation</code>, and send it back to partitions on Spark. The next step is Spark framework launchs executors on workers according to the <code>perferedLocation</code>, say, h4 WRT the example above. The launched executor on h4 read these blocks in the split now. But, how does h4 know which nodes to fetch each block? Remeber that each block has 3 replicas!</p>
+
+<p>Begining from <code>RecordReader</code> we can reveal the process of reading. Let&rsquo;s take our <code>BatchFileRecordReader</code> as an example.</p>
+
+<figure class='code'><figcaption><span>Constructer of BatchFileRecoderReader - BatchFileRecorderReader.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="kd">public</span> <span class="nf">BatchFileRecordReader</span><span class="o">(</span>
+</span><span class='line'>            <span class="n">CombineFileSplit</span> <span class="n">split</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">Configuration</span> <span class="n">conf</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">Reporter</span> <span class="n">reporter</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">Integer</span> <span class="n">index</span><span class="o">)</span>
+</span><span class='line'>            <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">path</span> <span class="o">=</span> <span class="n">split</span><span class="o">.</span><span class="na">getPath</span><span class="o">(</span><span class="n">index</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">startOffset</span> <span class="o">=</span> <span class="n">split</span><span class="o">.</span><span class="na">getOffset</span><span class="o">(</span><span class="n">index</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">pos</span> <span class="o">=</span> <span class="n">startOffset</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">end</span> <span class="o">=</span> <span class="n">startOffset</span> <span class="o">+</span> <span class="n">split</span><span class="o">.</span><span class="na">getLength</span><span class="o">(</span><span class="n">index</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">FileSystem</span> <span class="n">fs</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="na">getFileSystem</span><span class="o">(</span><span class="n">conf</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">fileIn</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">path</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">fileIn</span><span class="o">.</span><span class="na">seek</span><span class="o">(</span><span class="n">startOffset</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">totalMemory</span> <span class="o">=</span> <span class="n">Runtime</span><span class="o">.</span><span class="na">getRuntime</span><span class="o">().</span><span class="na">totalMemory</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In the code above, we get <code>path</code> from <code>split</code>, which represents the current file path (Note! It is not the block path.). Then we can get a <code>fileIn</code> which is actually a <code>FSDataInputStream</code>. We then <code>seek</code> it to the <code>startOffset</code> of our block. Wait for a second, we do not use <code>perferedLocation</code> in <code>split</code> at all! It is strange, we took lots of efforts just now, but it is not used here.</p>
+
+<p>We should remember here that the <code>split</code> is just used for providing a computing place for these set of blocks. Only so much. Reading is controlled by other code. Let&rsquo;s go into the <code>FSDataInputStream</code>. However, there is really nothing, just some useless-like code as below:</p>
+
+<figure class='code'><figcaption><span>FSDataInputStream.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">FSDataInputStream</span> <span class="kd">extends</span> <span class="n">DataInputStream</span>
+</span><span class='line'>    <span class="kd">implements</span> <span class="n">Seekable</span><span class="o">,</span> <span class="n">PositionedReadable</span><span class="o">,</span> <span class="n">Closeable</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="nf">FSDataInputStream</span><span class="o">(</span><span class="n">InputStream</span> <span class="n">in</span><span class="o">)</span>
+</span><span class='line'>        <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="kd">super</span><span class="o">(</span><span class="n">in</span><span class="o">);</span>
+</span><span class='line'>        <span class="k">if</span><span class="o">(</span> <span class="o">!(</span><span class="n">in</span> <span class="k">instanceof</span> <span class="n">Seekable</span><span class="o">)</span> <span class="o">||</span> <span class="o">!(</span><span class="n">in</span> <span class="k">instanceof</span> <span class="n">PositionedReadable</span><span class="o">)</span> <span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nf">IllegalArgumentException</span><span class="o">(</span>
+</span><span class='line'>            <span class="s">&quot;In is not an instance of Seekable or PositionedReadable&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">synchronized</span> <span class="kt">void</span> <span class="nf">seek</span><span class="o">(</span><span class="kt">long</span> <span class="n">desired</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="o">((</span><span class="n">Seekable</span><span class="o">)</span><span class="n">in</span><span class="o">).</span><span class="na">seek</span><span class="o">(</span><span class="n">desired</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>OK, let&rsquo;s force from another way. Note that <code>fileIn</code> is return by calling <code>fs.open()</code>. <code>fs</code> here is usually <code>DistributedFileSystem</code>. Then we find that <code>DistributedFileSystem</code> just wraps a <code>DFSInputStream</code> to <code>FSDataInputStream</code>. The former is implemented in <code>DFSClient</code>. Our expected function in <code>DFSInputStream</code> is <code>blockSeekTo()</code>, which is in charge of finding an appropriate block given offset. Then it will find the best DataNode, and read data from it.</p>
+
+<figure class='code'><figcaption><span>Find an appropriate block and select a DataNode  - DFSClient.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="n">DatanodeInfo</span> <span class="n">chosenNode</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">refetchToken</span> <span class="o">=</span> <span class="mi">1</span><span class="o">;</span> <span class="c1">// only need to get a new access token once</span>
+</span><span class='line'>    <span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">//</span>
+</span><span class='line'>        <span class="c1">// Compute desired block</span>
+</span><span class='line'>        <span class="c1">//</span>
+</span><span class='line'>        <span class="n">LocatedBlock</span> <span class="n">targetBlock</span> <span class="o">=</span> <span class="n">getBlockAt</span><span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'>        <span class="k">assert</span> <span class="o">(</span><span class="n">target</span><span class="o">==</span><span class="k">this</span><span class="o">.</span><span class="na">pos</span><span class="o">)</span> <span class="o">:</span> <span class="s">&quot;Wrong postion &quot;</span> <span class="o">+</span> <span class="n">pos</span> <span class="o">+</span> <span class="s">&quot; expect &quot;</span> <span class="o">+</span> <span class="n">target</span><span class="o">;</span>
+</span><span class='line'>        <span class="kt">long</span> <span class="n">offsetIntoBlock</span> <span class="o">=</span> <span class="n">target</span> <span class="o">-</span> <span class="n">targetBlock</span><span class="o">.</span><span class="na">getStartOffset</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">DNAddrPair</span> <span class="n">retval</span> <span class="o">=</span> <span class="n">chooseDataNode</span><span class="o">(</span><span class="n">targetBlock</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">chosenNode</span> <span class="o">=</span> <span class="n">retval</span><span class="o">.</span><span class="na">info</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">InetSocketAddress</span> <span class="n">targetAddr</span> <span class="o">=</span> <span class="n">retval</span><span class="o">.</span><span class="na">addr</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">...</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The most important function here is <code>chooseDataNode()</code>. It is very simple, just select the first DataNode in its DataNode list. If the first one is unreachable, it will try to connect to the second one, and so on. The comments in <code>bestNode()</code> function mentioned that DataNode list has already sorted in the priority order. It is strange that when it is sorted?</p>
+
+<p>Indeed, the block priority order is set when the file is open. See <code>openInfo()</code>, it calls <code>callGetBlockLocations()</code> to set the order. The latter query information from <code>NameNode</code>, in <code>getBlockLocations()</code>:</p>
+
+<figure class='code'><figcaption><span>Get block locations and sorted in the priority order  - FSNamesystem.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="n">LocatedBlocks</span> <span class="nf">getBlockLocations</span><span class="o">(</span><span class="n">String</span> <span class="n">clientMachine</span><span class="o">,</span> <span class="n">String</span> <span class="n">src</span><span class="o">,</span>
+</span><span class='line'>        <span class="kt">long</span> <span class="n">offset</span><span class="o">,</span> <span class="kt">long</span> <span class="n">length</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">LocatedBlocks</span> <span class="n">blocks</span> <span class="o">=</span> <span class="n">getBlockLocations</span><span class="o">(</span><span class="n">src</span><span class="o">,</span> <span class="n">offset</span><span class="o">,</span> <span class="n">length</span><span class="o">,</span> <span class="kc">true</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">blocks</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="c1">//sort the blocks</span>
+</span><span class='line'>            <span class="n">DatanodeDescriptor</span> <span class="n">client</span> <span class="o">=</span> <span class="n">host2DataNodeMap</span><span class="o">.</span><span class="na">getDatanodeByHost</span><span class="o">(</span>
+</span><span class='line'>                <span class="n">clientMachine</span><span class="o">);</span>
+</span><span class='line'>            <span class="k">for</span> <span class="o">(</span><span class="n">LocatedBlock</span> <span class="n">b</span> <span class="o">:</span> <span class="n">blocks</span><span class="o">.</span><span class="na">getLocatedBlocks</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>                <span class="n">clusterMap</span><span class="o">.</span><span class="na">pseudoSortByDistance</span><span class="o">(</span><span class="n">client</span><span class="o">,</span> <span class="n">b</span><span class="o">.</span><span class="na">getLocations</span><span class="o">());</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">blocks</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can see that it calls <code>pseudoSortByDistance()</code> of <code>clusterMap</code> to sort according to the distance. Untill now, we get the full picture of how HDFS keep locaility for applications.</p>
+
+<h2>New Design and Implementation</h2>
+
+<h2>Interesting test code</h2>
+
+<p>key ideas:</p>
+
+<ul>
+<li><p><del>癫狂小文件：由small files input探索HDFS：功用、功效、策略</del></p></li>
+<li><p><del>Spark的处理方式：partition自己定制，把O(n<sup>2</sup>)的shuffle变成O(n)的？</del></p></li>
+<li><p>Hbase作为替代</p></li>
+<li><p><del>Hdfs combine file与multi file对比，后者为什么被deprecated</del></p></li>
+<li><p><del>Shuffle为什么存在，如何避免，是在底层（HDFS）还是在上层（Spark应用）？</del></p></li>
+<li><p><del>偶尔要为replication容错付出更多代价</del></p></li>
+<li><p><del>Combine file input format，blog上错误多影响广，以及不友好的API，糟糕的示例和注释。</del></p></li>
+<li><p><del>实际场景？学术研究VS线上应用。什么才是LDA输入的最佳实践？Mahout的处理方式？</del></p></li>
+<li><p>文件系统的设计思考，可引入我自己的文件系统。</p></li>
+<li><p>代码的简洁如何保证？同时如何保证性能？隐藏在简洁代码中的黑魔法。</p></li>
+<li><p>Partition，split，以及种种locaility preserve的思考（为什么程序性能这么差？1024个partition从何而来？）</p></li>
+<li><p>Google在bigtable和GFS的思考</p></li>
+<li><p>LineRecorder中的readline函数如何实现越过block向后看？</p></li>
+</ul>
+
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[How to Use Spark for ML Algorithms and Why ?]]></title>
+    <link href="http://yinxusen.github.io/blog/2014/01/18/how-to-use-spark-for-ml-algorithms-and-why/"/>
+    <updated>2014-01-18T16:33:43+08:00</updated>
+    <id>http://yinxusen.github.io/blog/2014/01/18/how-to-use-spark-for-ml-algorithms-and-why</id>
+    <content type="html"><![CDATA[<p><strong>NOTE</strong> This PR is only a request for comments, since it introduces some minor incompatible interface change in MLlib.</p>
+
+<p><strong>Update 2014-01-16</strong> The inner iteration counts of local optimization is also an important parameter, which is related to the convergence rate. I will add some new experiments about it ASAP.</p>
+
+<p><strong>Update 2014-01-16 [2]</strong>Using <code>data.cache</code> brings a great performance gain, BSP+ is worse than original version then.</p>
+
+<p><strong>Update 2014-01-17</strong> When we removing the straggler of BSP+, BSP+ is better than original version. Straggler comes from the <code>sc.textFile</code>, HDFS gives bad answer. Seems that SSP is more reasonable and useful now. Besides, inner iteration is also a big factor. For our data with 15 partitions, 60 seems to be the best inner iteration.</p>
+
+<p>If there is no straggler at all, the costs caused by framework must be higher than the inner iteration expansion. Meanwhile, the uncertainty caused by high parallelism is made up by the acceleration.</p>
+
+<p><strong>Update 2014-01-18</strong> We also find that there are some influences come from the partition number. As we said earlier, there is a inflection point.</p>
+
+<p><strong>Update 2014-01-18 [2]</strong> We test SVM with BSP+, it runs cool. We also modify LASSO, RidgeRegression, LinearRegression.</p>
+
+<p><strong>Update 2014-01-18 [3]</strong> BSP+ SVM beats original SVM 7 倍，是不是JobLogger或者时间的统计会影响性能？因为后者打印的log数量非常庞大。经过验证，阎栋加入的JobLogger没有那么严重的影响。由系统加入的TaskLog和DAGLog不知道怎么停。</p>
+
+<p><strong>Update 2014-01-18 [4]</strong> 思考一个问题，为什么同样的工作量，60次混合会比传统的梯度下降要好？要能解释这一点。差异只在混合策略上，例如，我有一个想法，还没想清楚呢就跟别人说了，搞得大家都不明白。如果自己想清楚了，再跟别人说会更明白。</p>
+
+<p><strong>Update 2014-01-18 [5]</strong> BSP+快的原因，因为同步次数少了，导致网络开销同比减少。所以结果比原始情况好。大大的提升通信量，才能展现出我们的优势。</p>
+
+<p><strong>Update 2014-01-18 [6]</strong> 找了一个新数据，这份数据2000维度，30多个GB，比之前的unigram好，但又比trigram少，可见mllib之废物，1000w的维度就已经跪了！！这还做毛个大数据啊？本来像自己动手生成数据集，但是总感觉不好。网上找到一个新的。找新数据的目的就是增加维度，这样让每次迭代之间传输的数据量更大，我们的优势更加明显。</p>
+
+<p><strong>factors we found</strong></p>
+
+<ul>
+<li>number of partitions</li>
+<li>straggler (YJP profiling)</li>
+<li>inner iteration</li>
+<li>outer iteration</li>
+</ul>
+
+
+<p><strong>Two different usages of Spark present two different thoughts</strong></p>
+
+<ul>
+<li><p>The classic one is that we use Spark as a distributed code compiler, plus with a task dispatcher and executors. In this way, <a href="http://www.eecs.berkeley.edu/~keo/">Kay Ousterhout</a> publish a paper called <a href="http://www.cs.berkeley.edu/~matei/papers/2013/sosp_sparrow.pdf">Sparrow: Distributed, Low Latency Scheduling</a> is the future. However, I don&rsquo;t think it is the best practice of Spark. The <a href="https://spark-project.atlassian.net/browse/SPARK-1006">DAG scheduler stack overflow</a> is also a big question as mentioned by <a href="http://www.cs.berkeley.edu/~matei/">Matei Zaharia</a>.</p></li>
+<li><p>A more natural way to use Spark W.R.T. machine learning is treat Spark as a effective distributed executive container. Data with cache stay in each executor, computing flow over these data, and feedback parameters to drivers again and again.</p></li>
+</ul>
+
+
+<!--more-->
+
+
+<h2>Introduction</h2>
+
+<p>In this PR, we propose a new implementation of <code>GradientDescent</code>, which follows a parallelism model we call BSP+, inspired by Jeff Dean&rsquo;s <a href="http://research.google.com/archive/large_deep_networks_nips2012.html">DistBelief</a> and Eric Xing&rsquo;s <a href="http://petuum.org/research.html">SSP</a>.  With a few modifications of <code>runMiniBatchSGD</code>, the BSP+ version can outperform the original sequential version by about 4x without sacrificing accuracy, and can be easily adopted by most classification and regression algorithms in MLlib.</p>
+
+<p>Parallelism of many ML algorithms are limited by the sequential updating process of optimization algorithms they use.  However, by carefully breaking the sequential chain, the updating process can be parallelized.  In the BSP+ version of <code>runMiniBatchSGD</code>, we split the iteration loop into multiple supersteps.  Within each superstep, an inner loop that runs a local optimization process is introduced into each partition.  During the local optimization, only local data points in the partition are involved.  Since different partitions are processed in parallel, the local optimization process is natually parallelized.  Then, at the end of each superstep, all the gradients and loss histories computed from each partition are collected and merged in a bulk synchronous manner.</p>
+
+<p>This modification is very localized, and hardly affects the topology of RDD DAGs of ML algorithms built above.  Take <code>LogisticRegressionWithSGD</code> as an example, here is the RDD DAG of a 3-iteration job with the original sequential <code>GradientDescent</code> implementation:</p>
+
+<p><img src="https://f.cloud.github.com/assets/2637239/1901663/dbd44be0-7c67-11e3-8c44-800a10f6d92a.jpg" title="Original version of `LogisticRegressionWithSGD`" alt="123" /></p>
+
+<p><strong>Figure 1. RDD DAG of the original LR (3-iteration)</strong></p>
+
+<p>And this is the RDD DAG of the one with BSP+ <code>GradientDescent</code>:</p>
+
+<p><img src="https://f.cloud.github.com/assets/2637239/1901664/e5fea980-7c67-11e3-9e24-5c9978d94d02.jpg" title="BSP+ version of `LogisticRegressionWithSGD`" alt="234" /></p>
+
+<p><strong>Figure 2. RDD DAG of the BSP+ LR (3-iteration)</strong></p>
+
+<h2>Experiments</h2>
+
+<p>To profile the accuracy and efficiency, we have run several experiments with both versions of <code>LogisticRegressionWithSGD</code>:</p>
+
+<ul>
+<li><p>Dataset: the unigram subset of the public <a href="http://www.csie.ntu.edu.tw/~cjlin/libsvmtools/datasets/binary.html">web spam detection dataset</a></p>
+
+<ul>
+<li>Sample count: 350,000</li>
+<li>Feature count: 254</li>
+<li>File size: 382MB</li>
+</ul>
+</li>
+<li><p>Hardware:</p>
+
+<ul>
+<li>Nodes count: 15</li>
+<li>CPU core count: 120</li>
+</ul>
+</li>
+<li><p>Spark memory configuration:</p>
+
+<ul>
+<li><code>SPARK_MEM</code>: 8g</li>
+<li><code>SPARK_WORK_MEMORY</code>: 10g</li>
+</ul>
+</li>
+</ul>
+
+
+<p>Experiment results are presented below.</p>
+
+<h3>Rate of convergence</h3>
+
+<p><img src="https://f.cloud.github.com/assets/2637239/1909932/affb2118-7d09-11e3-8b59-abe2584d88cd.png" alt="08" /></p>
+
+<p><strong>Figure 3. Rate of convergence</strong></p>
+
+<p><img src="https://f.cloud.github.com/assets/2637239/1917187/9a808e16-7d8d-11e3-8e8e-0d279d7f5cbc.png" alt="graph3" /></p>
+
+<p><strong>Figure 3.1 Rate of convergence W.R.T. time elapsed</strong></p>
+
+<p>Experiment parameters:</p>
+
+<ul>
+<li><p>BSP+ version:</p>
+
+<ul>
+<li>Superstep count: 20</li>
+<li>Local optimization iteration count: 20</li>
+</ul>
+</li>
+<li><p>Original version:</p>
+
+<ul>
+<li>Iteration count: 20</li>
+</ul>
+</li>
+</ul>
+
+
+<p>Notice that in the case of BSP+, actually <code>20 * 20 = 400</code> iterations are computed, but the per-partition local optimization iterations are executed <em>in parallel</em>.  From figure 3 we can see that the BSP+ version converges at superstep 4 (80 iterations), and the result after superstep 3 is already better than the final result of the original LR. From figure 3.1 we can get a more clear insight of the speedup.</p>
+
+<p><img src="https://f.cloud.github.com/assets/2637239/1909937/d5dc6248-7d09-11e3-922f-89fcc4431ef0.png" alt="07" /></p>
+
+<p><strong>Figure 4. Iteration/superstep time</strong></p>
+
+<p>Next, let&rsquo;s see the time consumption.  Figure 4 shows that single superstep time of BSP+ LR is about 1.6 to 1.9 times of single iteration time of the original LR.  Since the final result of original LR doesn&rsquo;t catch up with superstep 3 of BSP+ LR, we may conclude that BSP+ is at least <code>(20 * 6 * 10^9 ns) / (3 * 1.2 * 10^10 ns) = 3.33</code> times faster than the original LR. Actually it has 4.3x performance gain in comparison with original LR, as depicted in figure 3.1. The main reason is that: the original version submits 1 job per iteration, while the BSP+ version submits 1 job per superstep, and per partition local optimization doesn&rsquo;t involve any job submission.</p>
+
+<h3>Correctness</h3>
+
+<p><img src="https://f.cloud.github.com/assets/2637239/1909941/f05122b2-7d09-11e3-84b4-10a81ac0b14a.png" alt="09" /></p>
+
+<p><strong>Figure 5. Loss history</strong></p>
+
+<p>Experiment parameters:</p>
+
+<ul>
+<li><p>BSP+ version:</p>
+
+<ul>
+<li>Superstep count: 20</li>
+<li>Local optimization iteration count: 20</li>
+</ul>
+</li>
+<li><p>Original version:</p>
+
+<ul>
+<li>Iteration count: 80</li>
+</ul>
+</li>
+</ul>
+
+
+<p>In this experiment, we compare the loss histories of both versions of LR.  We can see that BSP+ gives better answer much faster.</p>
+
+<h3>Relationship between parallelism and the rate of convergence</h3>
+
+<p><img src="https://f.cloud.github.com/assets/2637239/1909944/1379794c-7d0a-11e3-8a1f-7e3401422cf7.png" alt="10" /></p>
+
+<p><strong>Figure 6. Iteration/superstep time under different #partitions</strong></p>
+
+<p><img src="https://f.cloud.github.com/assets/2637239/1909945/2044fa70-7d0a-11e3-811d-359c20e2e0d6.png" alt="13" /></p>
+
+<p><strong>Figure 7. Job time under different #partitions</strong></p>
+
+<p>Experiment parameter:</p>
+
+<ul>
+<li><p>BSP+ version:</p>
+
+<ul>
+<li>Superstep count: 20</li>
+<li>Local optimization iteration count: 20</li>
+</ul>
+</li>
+<li><p>Original version:</p>
+
+<ul>
+<li>Iteration count: 20</li>
+</ul>
+</li>
+</ul>
+
+
+<p>In the case of BSP+, by adjusting minimal number of partitions (actual partition number is decided by the <code>HadoopRDD</code> class), we can explore the relationship between parallelism and the rate of convergence.  From figure 6 and figure 7 we can see, not surprisingly, single iteration/superstep time and job time decrease when number of partitions increases.</p>
+
+<p><img src="https://f.cloud.github.com/assets/2637239/1909947/34517656-7d0a-11e3-90bd-029cf802e35a.png" alt="14" /></p>
+
+<p><strong>Figure 8. Job time under different #partitions.  Each job converges to roughly the same level.</strong></p>
+
+<p>Experiment parameter:</p>
+
+<ul>
+<li><p>BSP+ version:</p>
+
+<ul>
+<li>Local optimization iteration count: 20</li>
+<li>All jobs runs until they converges to roughtly the same level</li>
+</ul>
+</li>
+</ul>
+
+
+<p>Then follows the interesting part.  In figure 8, several jobs are executed under different number of partitions.  By adjusting superstep count, we make all jobs converges to roughly the same level, and compare their job time.  The figure shows that the job time is a convex curve, whose inflection point occurs when #partition is 45.  So here is a trade off between parallelism and the rate of convergence: we cannot always increase the rate of convergence by increasing parallelism, since more partition implies fewer sample points within a single partition, and poorer accuracy for the parallel local optimization processes.</p>
+
+<h2>Acknowledgement</h2>
+
+<p>Thanks @liancheng for the prototype implementation of the BSP+ SGD.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[ADL45 Meeting Record]]></title>
+    <link href="http://yinxusen.github.io/blog/2014/01/17/adl45-meeting-record/"/>
+    <updated>2014-01-17T18:49:47+08:00</updated>
+    <id>http://yinxusen.github.io/blog/2014/01/17/adl45-meeting-record</id>
+    <content type="html"><![CDATA[<h2>引子</h2>
+
+<p>12月17-18日参加了计算机学会组织的<a href="http://www.ccf.org.cn/sites/ccf/xhdtnry.jsp?contentId=2771337645909">推荐系统前沿课程</a>，来自工业界和学术界前沿的诸位专家大牛们分享了实践和理论模型等。受益良多，趁着余热先给大家一个介绍，稍后我拿到了slides可以继续完善。疏漏之处在所难免，还请大家谅解。
+课程列表：</p>
+
+<ol>
+<li><p>Social recommendation systems 诺亚方舟实验室 杨强</p></li>
+<li><p>电子商务中的个性化技术 阿里妈妈广告事业部总监 初敏</p></li>
+<li><p>推荐系统实践和挑战：以阿里巴巴、百分点科技为例 电子科技大学 周涛</p></li>
+<li><p>Critiquing-based recommender systems and user experiences 香港浸会大学 陈黎</p></li>
+<li><p>情景感知的信息推荐 中国科技大学 陈恩红</p></li>
+<li><p>Cross-domain link prediction and recommendation 清华大学 唐杰</p></li>
+<li><p>搜索广告的拍卖机制设计 MSRA 刘铁岩</p></li>
+</ol>
+
+
+<p>先说心得，总体来看，推荐系统这个领域，学术界单干拼不过工业界，工业界单个拼不过学术界工业界的合体。刘铁岩老师这次游离在外，讲的是博弈论。这几大talk基本涵盖推荐系统发展方向，其中不乏小众产品，但整体对方向和故事的把握都是不错的，可能会皮厚馅薄，不过对得起“前沿”这个词，很具有指导意义。</p>
+
+<!--more-->
+
+
+<h2>业界声音：</h2>
+
+<h3>初敏：</h3>
+
+<p>初敏老师是中科院声学所的博士，在MSRA待了10年之后加盟淘宝，目前负责淘宝全网大数据处理（即淘宝网+其他全部Internet数据）。</p>
+
+<p>首先夸赞了一下双11淘宝战绩，双11: 成交额 350亿，成交1.71亿笔。2013.9中国零售额的一半，王府井前三个季度两倍，沃尔玛中国半年的成绩。系统的压力，规模，去IOE之后的成功。环环都好，交易才顺畅。网银压死了。有很多银行也搬到阿里云平台上了。电商对应实体店有优势的，容易扩张。600w店铺，11亿商品，2亿消费者，真正做到大数据，这是其他地方无可比拟的，数据为王。</p>
+
+<p>在这种环境下，店铺想知道谁是我的顾客，谁是我的潜在顾客；消费者想知道哪些是我想要的商品；甚至厂商针对供需数据实现对产品的按需生产。实际的例子是聚划算与海尔联合，形成网购C2B模式。</p>
+
+<p>淘宝的责任：个性化技术，解决问题的关键（搜索（每个人query结果是不同的，针对不同人给不同的搜索结果）、推荐、广告，店铺CRM）传统搜索引擎，是“集中相关性”；而淘宝，是“去相关性”，因为淘宝中的搜索相关性已经很强了，怎么得到更好的结果？</p>
+
+<p>个性化带来的挑战：</p>
+
+<p><strong>用户建模</strong></p>
+
+<ul>
+<li>建立行为与需求的关联</li>
+<li>长期兴趣和即时需求建模</li>
+<li>人生阶段推断（上学，刚工作，恋爱，结婚生子）</li>
+<li>买车 买房 投资理财</li>
+<li>建立兴趣和具体产品之间的关联。</li>
+</ul>
+
+
+<p><strong>从复杂的数据图中抽取信息</strong></p>
+
+<ul>
+<li>n亿用户对几十亿商品的行为（点击 浏览 购买 搜索 支付），不同的场景（聚划算 天猫 淘宝 无线）</li>
+<li>稀疏性，虚假交易等识别</li>
+<li>类目体系和产品库不断的变更、建设</li>
+</ul>
+
+
+<p><strong>大数据计算</strong></p>
+
+<ul>
+<li>每天几十T数据</li>
+<li>多种异构数据源</li>
+<li>服务的实时性、稳定性</li>
+<li>质量评估，线上线下的评估测试</li>
+</ul>
+
+
+<h3>周涛：</h3>
+
+<p>周涛老师是学术界人，但是我还是归类到业界声音 ，因为周涛老师不仅学术做得好，向工业界的转化一样做的好。周涛老师的演讲也是很令人exciting的，讲的条理清晰，总结起来如下几块：</p>
+
+<ol>
+<li><p>数学 VS 商业</p></li>
+<li><p>科学型算法 VS 实践型算法</p></li>
+<li><p>应用驱动的挑战</p></li>
+</ol>
+
+
+<p>作为能同时在学术界和工业界风声水起的年轻教授，周涛有足够自信的理由，自己的东西又多，所以讲起来让人觉得实在可信。看得书估计不少，讲的时候能逗乐大家，各方面都是很值得学习的。曾经有次邮件陶瓷，关于他一篇random walk的论文，他还给了很热心的回复。不过周涛是从物理学出身，之前貌似是在瑞士读的物理学博士，所以对建模非常擅长，习惯把显示世界的问题引导到物理学世界并加以解决。这方面有同样长处的纽约大学的Yann LeCun，他做deep learning就是从统计物理学的角度出发作出一些模型搞得大家都看不懂。</p>
+
+<p>他认为，大数据带来的最大优势就是关联，互联，而不是量大。因为关联，才导致了1+1远大于2的能力。</p>
+
+<p>商业系统具有复杂性，如推荐系统中更多考量是在图片质量，色调匹配，合适的图片、产品才会推荐到首页，而（造人类，死人类，医用类）三大类目是永远进不了推荐系统的。要遵循小而美的战略思想，向中小型商家导流，增强整个市场的活力。应该按照库存限制优化推荐展示，包括考虑一些重复性购买产品，如日用品。要考虑商家信誉，来看推荐是否靠前，以及关注用户隐私以及容忍度。</p>
+
+<p>同时推荐系统还存在一些双向选择的过程，如婚恋网的推荐，好友的推荐，跟产品推荐不同。这种情况下应避免当事人过度暴光，会让用户感觉不舒服。还要了解用户的消费特性之类的。</p>
+
+<p>数学的方法具有深刻、优美而简洁的特性。第一个讲到的是一种半监督学习问题，学名semi-supervised learning。其实这个方法在2003年ICML上有一个优秀的华人科学家叫Xiaojin Zhu，来自CMU，发表了一个Semi-Supervised Learning: From Gaussian Fields to Gaussian Processes. 这篇论文10年后，在2013年被ICML评为10年最具影响力paper。其本质就是在高维空间里找到一种流形的边界条件。他们两个人分别从机器学习和物理学的角度给予了论述，这道是值得一读的。但是这个方法同时是不能实际使用的，原因有三：1迭代慢 2稳定性差，易受到矩阵微扰的影响 3 无法做增量计算。</p>
+
+<p>第二个讲到的是哈密顿模型，哈密顿指的是网络的一种能量，通过对一种网络定义一个哈密顿量可以求得网络整体的似然度。现在有一种假设，在一个网络中，三角形是稳定结构，一条边出现如果能增加网络中三角形的个数，那么它存在于网络中的可能性越大。这个方法于LeCun的deep learning模型非常像，后者是定义一个概率上的网络，通过寻找到一种configuration让网络能量最小化来优化模型，本质如出一辙。但是还是不能实际应用，原因有二 1计算网络的似然度超级复杂 2他所采用的模拟退火算法慢，只能用1000-2000节点的网络，所以对于现实问题不适用。大家可能会wondering，为什么LeCun的模型就能用呢？这就归功于Hinton，把原来超级复杂的优化问题用一个现实可解的，非常简单的算法解决来，才有了deep learning的春天。</p>
+
+<p>第三个是一种结构微扰模型，在一个网络中，如果增加一条边，不会严重影响原始网络结构，那么这条边应该存在于这个网络内。通过将矩阵对角化，求得特征值、特征向量，然后保持特征向量不变，在特征值上进行微扰，之后恢复矩阵结构的方法来解决问题。这个问题同样是非常慢，而且不能增量多，所以现实不可行。
+之后讲了一些简单的算法，有关联规则挖掘，协同过滤，局部扩散，共同邻居，有向网络势能理论的方法，这里不再展开。</p>
+
+<h2>研究主流：</h2>
+
+<h3>杨强：</h3>
+
+<p>杨强老师基本上是对rec sys的发展做了一个总结。从基础统计方法，到similarity based方法，协同过滤作为第一代推荐系统的代表统计rec世界10-20年之久。之后第二代以feature based matrix factorization为代表，主要从各大竞赛中走出来，如Netflix大赛，KDD竞赛。代表有Steffen Rendle和他的factor machine，以及陈天棋（上海交大）和他的feature-based matrix factorization，两种方法如出一辙。后者现在跟随GraphLab创始人Carlos Guestrin 在uwashington 也是颇有建树。在畅想中的第三代是automated feature extraction的推荐，主要依靠deep learning技术。这种方法我在天津听deep learning课程时候也思考过，不过当时微软的邓力老师说，deep learning在这个方面几乎没有潜力。不过现在看来Restricted Boltzmann Machine尚有一战之力？邓力原意是指deep的架构不适合推荐，不过其中的shallow方法还是可以借鉴的。这点尚没见有人做。</p>
+
+<p>主要存在的挑战一是数据量大，而是99%的缺失数据导致稀疏性高，三是训练集测试集的差异，或者因时间改变导致人的行为改变，底层分布变化。四是很多影响无法度量，如用户是否高兴。五是数据分布本身有很高的bias，不是自然分布，正负例分布不均。</p>
+
+<p>着重强调了推荐系统要使用群众智慧调节，多使用用户反馈，wisdom of the crowds。着重强调了transfer learning在数据稀疏中的应用，很有可搞的价值。提及了他的一个学生使用QQ关系网络数据学习一个结果transfer到weibo好友预测并得到很好的效果。着重强调了active learning的重要性，即推荐过程中及时challenge用户，主动发起交互。</p>
+
+<p>对于当代推荐技术（第二代），着重强调了feature extraction的重要性，陈天棋工作重要的一部分就是做了一个decision forest来提取feature。淘宝也是如此。</p>
+
+<h3>唐杰：</h3>
+
+<p>唐杰老师有三点值得学习，一是问题使用，motivation找的好，并且有系统支撑，二是找问题仔细，并能解决，而且还能说出意义，三是知道怎样把未知的问题转换成已知的问题。</p>
+
+<p>唐杰讲的主要是跨网络的信息推荐，用了改进的topic model（或者叫做factor graph更合适？），然后topic之间做了一些融合。主要解决了三个问题，一是link sparse；二是 合作网络需要互补；三是 有严重的topic skewness，需要纠偏。具体内容，唐杰老师已经在微博发布了自己的slide，去看看更加一目了然。</p>
+
+<p>关于LDA的发明与PLSI孰高孰低的思考，唐杰老师认为Blei只是在PLSI上做了增量，只不过把模型卖的很成功，他很看好PLSI发明者，是SIGIR99的论文。PLSI作者我不熟悉，不过Blei作为topic model一系列领军人物，还是可圈可点的。这个有机会再八卦。</p>
+
+<h3>陈恩红：</h3>
+
+<p>陈恩红老师主要做context aware recommendation，情景感知的信息推荐，09年开始与NOKIA合作，虽然已经被收购了，但是合作没有中断。</p>
+
+<p>第一个问题是Hp打印机的智能打印推荐，web页面打印时，可以根据用户常用选择对打印区域进行推荐，得到更好的打印体验。这个问题，故事不错，但是数据可能是个问题，例如数据是一台打印机的？还是多台打印机的？多台打印机之间怎么共享transaction log？用户是否会经常打印web页面？因为用户经常性选择打印正文，所以推荐的必要性？其实这个工作类似于有道笔记的网页剪报，不同之处在于后者剪下来直接存在云笔记里面。如果只有正文的话直接识别html好了，做个推荐系统意义并不大。</p>
+
+<p>第二个是用户兴趣的扩散，举一个例子，用户A，B都喜欢一个电影，然而A喜欢电影是因为其中的武侠元素，B喜欢电影是因为他是奥斯卡大片，所以这个电影中有不同的topic存在，我们要感知用户的真是心理体验。然后就用了一个topic model，LDA，得到推荐结果。之后为了让推荐结果多样性，在topic graph上面做了一个random walk，扩大一下推荐范围。</p>
+
+<p>最后是使用手机进行情景推荐，据说NOKIA给他们用户一天24小时的行为数据，当时我就觉得这事儿商业上不好做，没有用户能够share这种数据，这牵扯到极大的隐私问题，除非实验用户。使用了Nokia 443个用户 800w情景数据。然后他们对用户行为分快，得到其中的一个一个的context，每个context是连贯的上下文，例如，打球的context，看电影的context。然后又用了一个topic model来解决推荐的问题。不过这种context-aware的推荐你必须考虑实时性，否则你推荐结果算出来用户已经走了怎么办？LDA这种模型用Gibbs sampling做的话，真实场景下是要考虑实时性问题的。当然，这些年有很多人都做了online的LDA，我们在Spark上也做了LDA的batch training + streaming process + online query，所以这件事情还是可以做的。</p>
+
+<p>最后一块是旅游套餐推荐，不过个人感觉还是看马蜂窝之类的更好。像我这种小白旅游者都倾向于自己选地方，不喜欢跟团的，也不喜欢别人设定的路线。所以没仔细听。</p>
+
+<h2>机制设计：</h2>
+
+<h3>刘铁岩：</h3>
+
+<p>刘铁岩老师是我单向的老朋友了，经常去听他的talk，只是他不认识我。博弈论方面讨论目前主要作用是设计广告竞拍的机制。这方面没有背景知识很难理解，不过好歹这次听懂了。关于广告投放中的博弈论问题，估计老冯（诺以曼）生前也没觉得中国会有那么多追随者。主要还是什么样的竞标策略会达到均衡，然后在均衡条件下社会财富，以及媒体的回报有多大。</p>
+
+<p>为了推动人类社会进步，博弈学者们通常会考虑在一种竞拍机制的设置下，能够让社会资源的配置符合所有人的心理预期，这样让大家都happy的赚钱，同时考虑媒体revenue最大化，以保证媒体的收益。</p>
+
+<p>从博弈论作用于计算广告学的历史来看，最初是简单的一价拍卖法，即first price，简称FP（不是函数式编程）。FP非常简单，考虑两个竞拍者竞争同一个广告位，自然是价高者得，然后媒体（广告平台）收取竞拍者的报价。如此这般，价高者很happy，因为拿到了社会资源（广告位），并且得到了收益。考虑多个竞拍者的情况下，FP升级为广义一价拍卖法GFP，怎么做呢？根据大家的出价对竞拍者“排排坐”，然后价格最高者拿到最好的广告位，价格第二名拿到第二好的广告位，以此类推。</p>
+
+<p>FP和GFP非常好，以至于用了10-20年的时间。因为在FP和GFP的情况下，会达到均衡状态，并且可以证明，能够达到比较好的社会财富最大化。但是这种情况还存在一个问题，那就是不能保证媒体的收益。如果所有广告主联合起来，共同对付媒体，那么他们就能以平均低的多的价格获得原有广告位，媒体就会赔钱。</p>
+
+<p>之后William Vickrey推出了二价拍卖法，针对的还是两个广告主竞标一个广告位的情形。当然还是价高者得，但是媒体收的钱是第二名的报价。可以考证在这种情况下广告主倾向于说真话，因为说真话会得到最大的收益。在说真话的情况下可以达到纳什均衡，这样会保证社会财富的最大化并保证媒体的收益。William大神还因为这个二价拍卖法获得了1996年Nobel经济学奖。</p>
+
+<p>对于多人情况下的推广，二价拍卖法最佳的推广就是VCG，同样是广告主们排排坐，得到的广告位也是按照出价的排序来的，不同的是媒体收的钱是该广告主加入竞拍后，对社会财富带来的影响。这个方法比较绕，但是确是二价拍卖法完美的推广。</p>
+
+<p>正是由于VCG太难以理解，广告主们都倾向于不接受。Google于2002年推出了广义二价拍卖法，并号称自己是二价拍卖法完美的推广，其实并不是这样。不过将错就错，广义二价拍卖法反倒成为工业界的事实标准。不同之处在于广义二价拍卖法收钱与VCG不同，对于每个广告主收的钱是排在他后面的广告主的出价。乍一看这个才是二价拍卖法完美的推广，其实不是的。这种情况下广告主说假话可能得到更大的收益。那为什么广义二价拍卖法还能获得市场？主要是因为这个方法其实还是可以达到均衡的，并且能保证均衡条件下最差的社会财富比最佳情况也坏不了太多，而且广告主们通常认为这种方法才是可以理解的。</p>
+
+<p>但是实际问题是复杂的，以上种种设计都是在简单情况下的分析。实际上，有很多问题导致了均衡不复存在。例如，现在广告主购买的都是keyword，但是竞标却是在query上进行的，query与keyword的match存在很多问题。再比如，假设情况下各个广告之间是相互独立的，但实际情况不是如此，例如微软和Dell同时竞争一个广告位，Dell获得了广告位并非说明对微软是个损失，反而会引起微软的产品销售同时增加。实际上，美国08年的金融危机在很大程度上也是吃了这种假设的亏，在金融市场中他们使用了过于简化的模型，即认为各个金融产品之间的负债情况是独立的。但是当房市泡沫之后，对其他金融产品也因起了极大的扰动，相互独立的假设不复存在，一连串的相互影响导致金融市场崩溃。这对新时代的机器学习提出了新的挑战。铁岩他们组有关于在预测情况下，人类行为随着预测结果进行变化的研究，尽量使用隐变量消除这种“不定的变化”，重新达到一种条件独立性。</p>
+
+<h2>人机交互：</h2>
+
+<h3>陈黎：</h3>
+
+<p>陈黎老师做的主要关于推荐系统的界面设计，之前我从来没思考过这类问题，这次听倒是对我有些启发。她是北大的本硕，学校是做电子的，博士去了EPFL，就是Martin发明scala的学校，与爱因斯坦的母校也在一座城市内。博士期间主要做人机界面。他们主要关注大件的推荐，如房子，车子，因为这些东西人一生可能买不了几次，所以他们称之为“高风险推荐”。</p>
+
+<p>主要做了两个东西，一个是interactive的用户推荐算法，另一种是active的用户推荐算法。总结来说，就是推荐产品的过程中，不光推荐产品本身，还会推荐一些别人对产品的评价，通过这种评价构成结构化数据，让用户明白自己到底需要什么，辅助用户决策，所以我认为更应该算是assistant，而不是recommendation。</p>
+
+<p>她们做了很多文字排版，界面设计，眼动实验，还是很有趣的，这个可以直接看slide，比较直观。</p>
+
+<p>听得时候我想起了之前做过的题目，就是在大众点评的数据中，根据用户对餐馆的评价，寻找对餐馆的各个侧面（aspect），例如，餐馆的口味，环境，服务，菜系，价格等等。然后做一些综合评价。</p>
+
+<h2>总结：</h2>
+
+<p>总体来看，推荐系统行业还是呈现一片欣欣向荣的场面。作为下一代搜索引擎的推荐系统，自一出现就一直是关注的焦点，同时也是业界和学术界的宠儿。RecSys大会的出现表现了推荐系统在学术界的活力，从推荐系统出发，同时推进了大规模矩阵分析，大规模特征提取，大规模分布式框架，用户画像提取，全网数据融合，多源、异质网路分析，大规模文本分析挖掘，数据有效性、隐私与安全的分析，隐变量模型、图模型分析等等一系列技术的再开发与再进步。但是也要看到，学术界工业界缺乏交流引起的巨大鸿沟，优雅的学术艺术和实干的工业应用之间无法相互理解，学术成果难以转化，工业应用不易提升。徘回在两者的边缘，作者不断感受到系统才是经济基础，算法是上层建筑。没有经济基础，只求上层建筑的做法只是不断筑起空中楼阁，没有好故事可以讲，没有好问题可以解，没有好成果可以转化。只求经济基础不求上层建筑也是不可取，不在理解上层建筑的情况下一味追求经济基础的“大”和“快”，有可能偏离实际，不切和应用，得到的只能是一些preliminary的结果，不具有代表性。推荐系统问题是个实际问题，那就要放到实际场景中去看，同时又是个学术问题，有很多未知的技术方法等待被发现，两者互相结合才能做到真正优雅可用。</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Petuum: Source Code Read and Initial Test Result]]></title>
+    <link href="http://yinxusen.github.io/blog/2014/01/17/petuum-source-code-read-and-initial-test-result/"/>
+    <updated>2014-01-17T18:40:01+08:00</updated>
+    <id>http://yinxusen.github.io/blog/2014/01/17/petuum-source-code-read-and-initial-test-result</id>
+    <content type="html"><![CDATA[<p>这几天为了测好<a href="http://petuum.org/">Petuum</a>，花了一点时间看了一下Petuum源码，把其中的精华跟大家分享一下。</p>
+
+<p>Petuum共有9050行代码，代码文件数39个。整个Petuum这么多源码，其实就只实现了一个LDA，外加一个Hello world。目前没有一个pull request和issue，另外已经很久（20天）没有更新了。发现C++写的在github上不是很受欢迎，GraphLab也很少有pull request。相比之下Spark的Pull request之多，热度完全不同。</p>
+
+<!--more-->
+
+
+<h2>一级目录有：</h2>
+
+<ul>
+<li><p>Apps：LDA以及Hello world的具体实现</p></li>
+<li><p>Machinefiles：服务器worker的配置</p></li>
+<li><p>Scripts：启动/关闭job的脚本</p></li>
+<li><p>Src：主要的源码</p></li>
+<li><p>Third_party：编译时拉下来的第三方库</p></li>
+</ul>
+
+
+<p><strong>Src下共有以下几个代码目录：</strong></p>
+
+<ul>
+<li><p>Comm_handler：主要是命令行参数解析，ZMQ配置等</p></li>
+<li><p>Consistency：一致性控制、一致性策略，以及操作日志记录</p></li>
+<li><p>Include：头文件集合</p></li>
+<li><p>Proxy：client代理和server代理。两者用来RPC通信，类似于我写的SSP中的akka框架中的一小部分功能</p></li>
+<li><p>Server：参数服务器，其实就是一些table的集合（允许多个参数服务器存在，可以进行参数的partition）</p></li>
+<li><p>Storage：table的存储，cache，以及还入换出策略</p></li>
+<li><p>Util：逻辑时钟vector clock，就是Dynamo中的策略，以及一些小组件</p></li>
+</ul>
+
+
+<h2>以LDA为例（也没有别的例子），其大体逻辑如下：</h2>
+
+<ol>
+<li><p>初始化tablegroup，用于存储一系列table</p></li>
+<li><p>注册主线程</p></li>
+<li><p>在tableGroup中创建table</p></li>
+<li><p>创建LDA sampler</p></li>
+<li><p>sampler读数据（直接读到内存中，而且是压缩格式，只读取字数总量）</p></li>
+<li><p>创建sampling的线程组</p></li>
+<li><p>在线程组创建线程，并绑定在runSampling的函数上</p></li>
+<li><p>执行这些线程</p></li>
+<li><p>关闭线程，table group，并结束</p></li>
+</ol>
+
+
+<h2>整个过程中，8是实际干活的，也是唯一并行的地方。将这部分放大如下：</h2>
+
+<ol>
+<li><p>初始化每个线程拥有的数据，即数据分片，每个thread处理一片</p></li>
+<li><p>检查每个线程状态</p></li>
+<li><p>向参数服务器注册线程</p></li>
+<li><p>初始化topic</p></li>
+<li><p>进入sampling主循环</p></li>
+<li><p>结束，输出结果</p></li>
+</ol>
+
+
+<h2>其中5是主要干活的，这里每个thread针对自己的一片文件进行sampling操作。该部分放大如下：</h2>
+
+<ol>
+<li><p>初始化wordsampler</p></li>
+<li><p>采样一次迭代</p></li>
+<li><p>计算似然度</p></li>
+<li><p>barrier混合当前状态</p></li>
+</ol>
+
+
+<h2>这里有一些取巧的地方，也是表现处SSP的地方。</h2>
+
+<p>首先是初始化wordsampler的时候，需要从server获取最新的参数，这时参数请求不是发给server，而是发给本thread的cache，本thread cache合法则使用，否则使用本process的cache，合法则使用，否则才去server请求参数。（合法与否通过iteration的步子是否过于stale判断）。而向server请求参数也不是直接发送，是由clientProxy向serverProxy请求，serverProxy向server群体广播这个消息，拿到参数值。</p>
+
+<p>其次是每次迭代之后首先更新本地cache，即read-my-write。之后混合当前状态，这个混合只是个“建议混合”，本质上是将本次操作的日志记录到opLog中。opLog中定义的向server更新的操作只有两个：INC和PUT，一个用于增量，一个用于修改。而每当table调用iterate函数的时候，会引导到consistency_controller类的DoIterate函数，随机触发背后clientProxy的sendOpLog函数，该函数通过RPC发送序列化之后的opLog给serverProxy，之后交由适当的server反序列化并apply到自身。
+之后是一些注意事项：</p>
+
+<ul>
+<li><p>clientProxy 用作模拟RPC call，发送请求获得参数</p></li>
+<li><p>只在headclient上进行doc likelihood计算，而每个线程计算自己的localwordlikelihood</p></li>
+<li><p>真正对table的远程操作是在fast_word_sampler搞定的。</p></li>
+<li><p>clientproxy 负责SendOpLog 到server，而这个调用是在每次table调用Iterate的时候用到的。</p></li>
+<li><p>opLog的混合在server文件中</p></li>
+</ul>
+
+
+<p>整个工程目前只有这些内容。其他的dynamic scheduler之类的统统没有。论文里号称matrix factorization，以及coordinate descent之类的测试也没见着。不过整体用C++写还是蛮挑战的，用scala+<a href="http://akka.io/">akka</a>百来行就能实现差不多的功能。</p>
+
+<p>之前一些简单的测试效果感觉不是很满意，例如stale增大后likelihood抖动很严重，而且效果对比BSP没有明显的变好太多。后续我会详细测试一下这个效果。</p>
+]]></content>
+  </entry>
+  
+</feed>

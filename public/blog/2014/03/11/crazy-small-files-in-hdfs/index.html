@@ -1,0 +1,836 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Crazy Small Files in HDFS - wtf AI ?</title>
+  <meta name="author" content="Xusen">
+
+  
+  <meta name="description" content="Background 2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://yinxusen.github.io/blog/2014/03/11/crazy-small-files-in-hdfs">
+  <link href="/favicon.png" rel="icon">
+  <link href="/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <link href="/atom.xml" rel="alternate" title="wtf AI ?" type="application/atom+xml">
+  <script src="/javascripts/modernizr-2.0.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <script>!window.jQuery && document.write(unescape('%3Cscript src="./javascripts/libs/jquery.min.js"%3E%3C/script%3E'))</script>
+  <script src="/javascripts/octopress.js" type="text/javascript"></script>
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/">wtf AI ?</a></h1>
+  
+    <h2>Gee...  I don't know what AI means...</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:yinxusen.github.io" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/">Blog</a></li>
+  <li><a href="/blog/archives">Archives</a></li>
+  <li><a href="/aboutme">About Me</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Crazy Small Files in HDFS</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-11T16:28:47+08:00" pubdate data-updated="true">Mar 11<span>th</span>, 2014</time>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><h2>Background</h2>
+
+<p>2 months ago, I intent to contribute a LDA algorithm to Spark, coordinate with my parallel machine learning paper. After I finished the core of LDA &ndash; the Gibbs sampling, I find that there are some trivial matters in the way of creating a usable LDA. Mostly, they are the pre-processing of text files. For the word segmentation, both Chinese and English, I wrap Lucene with a piece of scala code to support that, just like what <a href="http://www.scalanlp.org/">ScalaNLP</a> does. But the input format traps me lots of time.</p>
+
+<p>The standard input format of Spark is from the interface called <code>textFiles(path, miniSplit)</code> in the <code>SparkContext</code> class. But it is a line processor, which digest one line each time. However what I want is a KV processor, i.e. I need an interface which can return me a KV pair (fileName, content) given a directory path. So I try to write my own <code>InputFormat</code>.</p>
+
+<p>Firstly, I try to use the <code>lineReader</code> and handle the fragments of blocks myself, later I find that it&rsquo;s both ugly and unnecessary, just as the code list below. I have to glue them together with a fixed seperator &ndash; &lsquo;\n&rsquo;. Instead of that, I use a more low level interface named <code>FSDataInputStream</code> to read an entire block once time. However, there are still some details need to be improved. Here, let&rsquo;s begin our explore.</p>
+
+<figure class='code'><figcaption><span>lineReader version RecordReader (the terrible version) - BatchFileRecordReader.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="cm">/**</span>
+</span><span class='line'><span class="cm">     * Reads an entire block contents. Note that files which are larger than the block size of HDFS</span>
+</span><span class='line'><span class="cm">     * are cut by HDFS, then there are some fragments. File names and offsets are keep in the key,</span>
+</span><span class='line'><span class="cm">     * so as to recover entire files later.</span>
+</span><span class='line'><span class="cm">     *</span>
+</span><span class='line'><span class="cm">     * Note that &#39;\n&#39; substitutes all other line breaks, such as &quot;\r\n&quot;.</span>
+</span><span class='line'><span class="cm">     */</span>
+</span><span class='line'>    <span class="nd">@Override</span>
+</span><span class='line'>    <span class="kd">public</span> <span class="kt">boolean</span> <span class="nf">next</span><span class="o">(</span><span class="n">BlockwiseTextWritable</span> <span class="n">key</span><span class="o">,</span> <span class="n">Text</span> <span class="n">value</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">key</span><span class="o">.</span><span class="na">fileName</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="na">getName</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">key</span><span class="o">.</span><span class="na">offset</span> <span class="o">=</span> <span class="n">pos</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">value</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">pos</span> <span class="o">&gt;=</span> <span class="n">end</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">return</span> <span class="kc">false</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">Text</span> <span class="n">blockContent</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Text</span><span class="o">();</span>
+</span><span class='line'>        <span class="n">Text</span> <span class="n">line</span> <span class="o">=</span> <span class="k">new</span> <span class="n">Text</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">while</span> <span class="o">(</span><span class="n">pos</span> <span class="o">&lt;</span> <span class="n">end</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">pos</span> <span class="o">+=</span> <span class="n">reader</span><span class="o">.</span><span class="na">readLine</span><span class="o">(</span><span class="n">line</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">blockContent</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">line</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(),</span> <span class="mi">0</span><span class="o">,</span> <span class="n">line</span><span class="o">.</span><span class="na">getLength</span><span class="o">());</span>
+</span><span class='line'>            <span class="n">blockContent</span><span class="o">.</span><span class="na">append</span><span class="o">(</span><span class="n">LFs</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">LFs</span><span class="o">.</span><span class="na">length</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">totalLength</span> <span class="o">&lt;</span> <span class="n">blockContent</span><span class="o">.</span><span class="na">getLength</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">value</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">blockContent</span><span class="o">.</span><span class="na">getBytes</span><span class="o">(),</span> <span class="mi">0</span><span class="o">,</span> <span class="n">totalLength</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>            <span class="n">value</span><span class="o">.</span><span class="na">set</span><span class="o">(</span><span class="n">blockContent</span><span class="o">.</span><span class="na">getBytes</span><span class="o">());</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="k">return</span> <span class="kc">true</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+
+
+<!--more-->
+
+
+<h2>LDA best practice:</h2>
+
+<p>I think there are two common ways to use LDA in practice. First is the use in experimental condition, say, you have a bunch of small files on your disk. Then you want to upload them into HDFS, and call LDA in Spark. This is a usual way if you just want to do some experiments with LDA. In other words, it is an off-line training process. The second way of using LDA is an industrial use. You may have a streaming pipe, which feeds new data from Twitter or some other websites into your system. You may choose to put those data into a distributed storage such as HDFS or HBase, or you just process the data stream.</p>
+
+<p>Think them boldly, they are totally different. With respect to the usage of LDA, we should take care of the two scenarios simultaneously. Both of them are useful so we should not give up each of them.</p>
+
+<h2>Offline scenario of LDA</h2>
+
+<p>In the offline scenario, maybe you are not responsible for pre-processing. Instead, you just leave it to the end-user. Users transform the raw texts into the format you specify, and upload them into HDFS so your LDA application can read them directly. In this way, what we need to do is just specify the input format. What a relief !</p>
+
+<p>Maybe you can help end-users one step more. You write a program, sequential or parallel, whichever is OK, to help the pre-processing for end-user. Just like what Mahout does. End-user may write an ugly shell program as coordinator, to control the overall workflow. In this way, you can write a program to transform the small files (raw texts) into a huge file which lines represents texts, with filenames in the front of the line plus a separator.</p>
+
+<p>But, I think a better way is melding the pre-process with LDA. What the end-user does is just upload his raw texts on HDFS. In this way, we must provide the function to read all texts and their corresponding filenames in. Then we implement a <code>CombineFileInputFormat</code>, a <code>CombineFileRecordReader</code>, a <code>FileLineWritable</code> and an interface looks like <code>textFiles</code> to support the scenario.</p>
+
+<figure class='code'><figcaption><span>Interface exposed to end-user - MLUtils.scala </span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+</pre></td><td class='code'><pre><code class='scala'><span class='line'>  <span class="cm">/**</span>
+</span><span class='line'><span class="cm">   * Reads a bunch of small files from HDFS, or a local file system (available on all nodes), or any</span>
+</span><span class='line'><span class="cm">   * Hadoop-supported file system URI, and return an RDD[(String, String)].</span>
+</span><span class='line'><span class="cm">   *</span>
+</span><span class='line'><span class="cm">   * @param path The directory you should specified, such as</span>
+</span><span class='line'><span class="cm">   *             hdfs://[address]:[port]/[dir]</span>
+</span><span class='line'><span class="cm">   *</span>
+</span><span class='line'><span class="cm">   * @param minSplits Suggested of minimum split number</span>
+</span><span class='line'><span class="cm">   *</span>
+</span><span class='line'><span class="cm">   * @return RDD[(fileName: String, content: String)]</span>
+</span><span class='line'><span class="cm">   *         i.e. the first is the file name of a file, the second one is its content.</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="k">def</span> <span class="n">smallTextFiles</span><span class="o">(</span><span class="n">sc</span><span class="k">:</span> <span class="kt">SparkContext</span><span class="o">,</span> <span class="n">path</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">minSplits</span><span class="k">:</span> <span class="kt">Int</span><span class="o">)</span><span class="k">:</span> <span class="kt">RDD</span><span class="o">[(</span><span class="kt">String</span>, <span class="kt">String</span><span class="o">)]</span> <span class="k">=</span> <span class="o">{</span>
+</span><span class='line'>    <span class="k">val</span> <span class="n">fileBlocks</span> <span class="k">=</span> <span class="n">sc</span><span class="o">.</span><span class="n">hadoopFile</span><span class="o">(</span>
+</span><span class='line'>      <span class="n">path</span><span class="o">,</span>
+</span><span class='line'>      <span class="n">classOf</span><span class="o">[</span><span class="kt">BatchFileInputFormat</span><span class="o">],</span>
+</span><span class='line'>      <span class="n">classOf</span><span class="o">[</span><span class="kt">BlockwiseFileKey</span><span class="o">],</span>
+</span><span class='line'>      <span class="n">classOf</span><span class="o">[</span><span class="kt">BytesWritable</span><span class="o">],</span>
+</span><span class='line'>      <span class="n">minSplits</span><span class="o">)</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="n">fileBlocks</span><span class="o">.</span><span class="n">mapPartitions</span> <span class="o">{</span> <span class="n">iterator</span> <span class="k">=&gt;</span>
+</span><span class='line'>      <span class="k">var</span> <span class="n">lastFileName</span> <span class="k">=</span> <span class="s">&quot;&quot;</span>
+</span><span class='line'>      <span class="k">val</span> <span class="n">mergedContents</span> <span class="k">=</span> <span class="nc">ArrayBuffer</span><span class="o">.</span><span class="n">empty</span><span class="o">[(</span><span class="kt">String</span>, <span class="kt">Text</span><span class="o">)]</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="k">for</span> <span class="o">((</span><span class="n">block</span><span class="o">,</span> <span class="n">content</span><span class="o">)</span> <span class="k">&lt;-</span> <span class="n">iterator</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">block</span><span class="o">.</span><span class="n">fileName</span> <span class="o">!=</span> <span class="n">lastFileName</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">mergedContents</span><span class="o">.</span><span class="n">append</span><span class="o">((</span><span class="n">block</span><span class="o">.</span><span class="n">fileName</span><span class="o">,</span> <span class="k">new</span> <span class="nc">Text</span><span class="o">()))</span>
+</span><span class='line'>          <span class="n">lastFileName</span> <span class="k">=</span> <span class="n">block</span><span class="o">.</span><span class="n">fileName</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">mergedContents</span><span class="o">.</span><span class="n">last</span><span class="o">.</span><span class="n">_2</span><span class="o">.</span><span class="n">append</span><span class="o">(</span><span class="n">content</span><span class="o">.</span><span class="n">getBytes</span><span class="o">,</span> <span class="mi">0</span><span class="o">,</span> <span class="n">content</span><span class="o">.</span><span class="n">getLength</span><span class="o">)</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">mergedContents</span><span class="o">.</span><span class="n">map</span> <span class="o">{</span> <span class="k">case</span> <span class="o">(</span><span class="n">fileName</span><span class="o">,</span> <span class="n">content</span><span class="o">)</span> <span class="k">=&gt;</span>
+</span><span class='line'>        <span class="o">(</span><span class="n">fileName</span><span class="o">,</span> <span class="n">content</span><span class="o">.</span><span class="n">toString</span><span class="o">)</span>
+</span><span class='line'>      <span class="o">}.</span><span class="n">iterator</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>  <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>I am not mean that it&rsquo;s the best practice. Indeed, it is very bad to put lots of small files on HDFS, for it will occupy so many index entries than bad performance will occur. I just talk about one feasible way. However, there are some tangle problems we must solve.</p>
+
+<p>First of all is the block size of your HDFS. Although we mean &ldquo;small files&rdquo;, but how small it is? Will its size larger than a single block in HDFS? The answer is Yes, it is possible. So we must handle the joint of blocks for each file, especially when the file is a multi-byte one, say, UTF encoded. Characters on the edge of blocks will be separated into two parts. We must take the responsibility to merge them together seamlessly.</p>
+
+<p>The key point is, we do not like shuffle, especially the unnecessary one. We hope that blocks of each file could be stay in the same node, so that we can merge them together without shuffle. As with the <a href="http://www.idryman.org/blog/2013/09/22/process-small-files-on-hadoop-using-combinefileinputformat-1/">blog</a> says, if we override the <code>isSplitable()</code> function and set the return value to false, then we can keep a single file in the same <code>split</code>. <code>HadoopRDD</code> treats a <code>split</code> as a single partition. If so, we just need to merge blocks of a single file in one partition without any shuffle. Very happy!</p>
+
+<p>However, we find that what the blog says is wrong. The <code>isSplitable()</code> is really useful, but just for <code>FileInputFormat</code>, which is the parent class of <code>CombineFileInputFormat</code>. The latter has a very complicated logic to, you know, divide blocks into splits. However, in order to improve the read performance, <code>CombineFileInputFormat</code> constructs a node list and a rack list, to chain blocks in the same node, or the same rack together, and send them into the same split. Remember that HDFS has replications. If there are 3 replicas of a block, then <code>CombineFileInputFormat</code> could have the possibility to read any of the 3 replications, <del>so we cannot ensure that the class will read any blocks from any nodes! It seems that a global shuffle is inevitable.</del></p>
+
+<p>Funny, we also find that there is a class named <code>MultiFileInputFormat</code>, which is the predecessor of <code>CombineFileInputFormat</code>. It is deprecated now, because of the low efficiency due to unawareness of data locality (per node / rack).</p>
+
+<p><del>There must be some trade-offs here. We should solve the shuffle in HDFS level, or we need solve the shuffle in Spark level. If sizes of all files are smaller than the block size, there is nothing hard to solve. But we cannot assume things like that.</del></p>
+
+<h2>Online scenario of LDA</h2>
+
+<p>Now let&rsquo;s turn into another direction. Note that a online product will never take the way described above. You know, people comes from data process division would not be silly to save all raw texts in local disks, then upload it to servers when processing. Massive data, in my opinion, should be stay in an appropriate place. In this scenario, raw texts or web page should be stored in a KV store, such as HBase (facebook has a nice <a href="http://research.cs.wisc.edu/adsl/Publications/fbmessages-fast14.pdf">paper</a> talking about the performance issues of HBase atop of HDFS). Small texts or articles should be treated same with pictures from websites. So, in reality, HBase will be used. However, Spark has no external storage except HDFS and local disk. So I think it is the time to add new storage.</p>
+
+<h2>In case of using a our own customized partitioner</h2>
+
+<p>Ah&hellip; It&rsquo;s awful! You know what, one of the reasons than Spark beats its counterparts is customized partitioners. It is the first time that you can arrange/rearrange your items according to your wishes such easily. One idea to settle our problem is using a customized partitioner to rearrange our KV pairs. However, new partitioner is useful only when we do join of two RDDs iteratively, such as <code>PageRank</code>. But if we only need to shuffle things once time, it will be helplessness, for you cannot avoid the first-time shuffle.</p>
+
+<h2>Where the shuffle from? How to do trade-off?</h2>
+
+<p>We talked about needless shuffle just now. So question is, where is the shuffle from, and how to do trade-off? First, huge-files (or small files with smaller block size) could be cut off due to the fixed block size, so we want blocks belong to a single file could stay in the same split (partition, in dialect of Spark), then we can combine them together to recover the single file without any shuffle. The process is essential, because there will be multi-bytes characters such as UTF could be split.</p>
+
+<p>Second, <code>CombineFileInputFormat</code> cannot preserve the property for us, due to the consideration of efficiency (see <code>CombineFileInputFormat</code> and <code>MultiFileInputFormat</code> as an example). Mostly because of the replication in HDFS, the fault tolerance function in HDFS, blocks of a single file could be read at any nodes.</p>
+
+<p>So there are the trade-offs between &ldquo;shuffle HDFS level&rdquo; with &ldquo;shuffle Spark level&rdquo;, and between &ldquo;efficiency when reading blocks&rdquo; with &ldquo;efficiency due to shuffle-free&rdquo;, and eventually between &ldquo;efficiency&rdquo; with &ldquo;security&rdquo;.</p>
+
+<h2>Take a deep breath &ndash; Full disclosure of locaility in Hadoop</h2>
+
+<p>To get into the secret of locaility of Hadoop IO, I have to look deep into <code>InputFormat</code> code in <code>mapred</code>. Due to the use of Spark, I choose <code>FileInputFormat</code> as the breach. First you should keep these concepts in mind, which will be used commonly later. They are <em>rack</em>, <em>node</em>, <em>file</em>, <em>block</em>, <em>replica</em>. A rack is composed of several nodes, nodes are machines composing HDFS in Hadoop. A file is composed of several blocks. A block could have several replicas, usually 3 copies. Note that your Hadoop workers could cover all HDFS nodes, but there could also mismatch between Hadoop workers and HDFS nodes. Note also that replicas of a block are usually span different racks, due to the consideration of robustness.</p>
+
+<p>Things could be a little bit more complicated, if we add the workers of Hadoop in. Program could span across different workers, data could span across different nodes. So, question is, how to arrange the mapping of programs in each worker and blocks in each node, to get the best locaility, i.e. the less network communication when reading files on HDFS?</p>
+
+<p>This is not easy, since there are many layers between program with block. Program is aware of file directly. File divided into several blocks. Block could be located in each nodes, and its replicas could be located in any other nodes. Different nodes could in different racks. Let&rsquo;s begin from our program. Take Spark as an example, you may call <code>hadoopRDD = sc.textFile(path)</code> to tell Spark read a file in. The path could be a local disk path, or more commonly, a HDFS path. <code>hadoopRDD</code> is usually partitioned for distributed computing. So, where is the partition information from? The answer is <code>Split</code> in HDFS. <code>Split</code>, or more specifically, <code>FileSplit</code>, which is used in <code>FileInputFormat</code>. <code>FileSplit</code> is an approach to arrange the mapping of <strong>blocks and programs</strong>.</p>
+
+<p>Each <code>FileSplit</code> is a block set, in which blocks will be computed in the same worker, i.e. they are partitioned together. To preserve the locaility, <code>FileSplit</code> takes lots of efforts to place appropriate blocks together. Such as contribution computing, and node &lt;&ndash;> block, rack &lt;&ndash;> block double linked lists, etc. Note that shuffle in Spark is only related to the <code>Split</code>, because <code>Split</code> serves as a layer to shield the details in HDFS, which means that, if and only if we put blocks of an entire file into the same <code>Split</code>, our Spark is then &ldquo;shuffle-free&rdquo;. But we cannot arrange different small files into a split in an random order, because different small files could be in everywhere on the HDFS cluster. If we put two files which are far apart in the same <code>Split</code>, bad performance will occur. Here we degenerate the program &ndash; block mapping to <strong>split &ndash; block</strong> mapping.</p>
+
+<h3>Node/Rack contribution computing</h3>
+
+<p>We should remind ourselves that there is little chance to put blocks in the same node in the same <code>Split</code>, because we cannot directly access blocks, instead we just specify the file path. Suppose that we have a <code>Split</code>, in which there are 3 blocks, and come from 8 nodes. 8 nodes belong to 4 racks. Moreover, each block has 3 replicas in total. Let&rsquo;s assume that the lengths of 3 blocks are 100, 150, 75, respectively. How to arrange the <code>perferedLocation</code> in this scenario? Namely, on which workers should the <code>Split</code> be processed?</p>
+
+<p><img src="/images/2014/03/pic-1.png" alt="pic-1" /></p>
+
+<p>First of all, we all agree that the <code>preferedLocation</code> should be a subset of all nodes of our block. In our example, it would be a subset of [h1 &hellip; h8]. The second is, how to sort the subset, so as to make &ldquo;the best&rdquo; node at first, then &ldquo;the second-best&rdquo; one, &hellip;</p>
+
+<p>There are two different ways to arrange the <code>preferedLocation</code>&ndash; the rack-aware way and the rack-free way. Let&rsquo;s first decide what is the criteria of sort, i.e. what kind of node is &ldquo;the best&rdquo;? As illustrated in the picture above, we define a concept named &ldquo;effective size&rdquo;. Effective size of a node is how many effective bytes of data of the split on this node. Effective size of a rack is how many effective bytes of data of the split on this rack. What effective bytes means is distinguishing block size. Say, Rack4 has two blocks, each block&rsquo;s size is 75. But the effective size of Rack4 is not 150, it is still 75, because the two blocks are the same &ndash; they are replicas.</p>
+
+<p>The rack-aware way is that we treate rack the same important with node. After we get the effective size, we can give them an order as below:</p>
+
+<ol>
+<li>Rack 2 (250)
+
+<ol>
+<li>h4 (150)</li>
+<li>h3 (100)</li>
+</ol>
+</li>
+<li>Rack 1 (175)
+
+<ol>
+<li>h1 (175)</li>
+<li>h2 (100)</li>
+</ol>
+</li>
+<li>Rack 3 (150)
+
+<ol>
+<li>h5 (150)</li>
+<li>h6 (150)</li>
+</ol>
+</li>
+<li>Rack 4 (75)
+
+<ol>
+<li>h7 (75)</li>
+<li>h8 (75)</li>
+</ol>
+</li>
+</ol>
+
+
+<p>So the priority order is <strong>h4 > h3 > h1 > h2 > h5 > h6 > h7 > h8</strong>.</p>
+
+<p>In the other way, the rack-free way is simple. It just ignore the rack information, and sorts nodes via effective bytes of nodes:</p>
+
+<ol>
+<li>h1 (175)</li>
+<li>h4 (150)</li>
+<li>h5 (150)</li>
+<li>h6 (150)</li>
+<li>h2 (100)</li>
+<li>h3 (100)</li>
+<li>h7 (75)</li>
+<li>h8 (75)</li>
+</ol>
+
+
+<p>Then the order is <strong>h1 > h4 > h5 > h6 > h2 > h3 > h7 > h8</strong>.</p>
+
+<p>For more details, see this <a href="https://github.com/apache/hadoop-common/blob/release-1.0.4/src/test/org/apache/hadoop/mapred/TestGetSplitHosts.java">test code</a>.</p>
+
+<h3>Double linked lists</h3>
+
+<p><code>CombineFileInputFormat</code> chooses another way to keep locaility. It uses double linked list to chain blocks together, then sweep the chain per node, then per rack, to generate locaility-preserved split. This is cool if all small files are smaller than one block size. But if there is file content span across two blocks or more, especially the content has UTF8 code, it will get worse.</p>
+
+<figure class='code'><figcaption><span>Double linked lists sweep for constructing split - CombineFileInputFormat.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+<span class='line-number'>18</span>
+<span class='line-number'>19</span>
+<span class='line-number'>20</span>
+<span class='line-number'>21</span>
+<span class='line-number'>22</span>
+<span class='line-number'>23</span>
+<span class='line-number'>24</span>
+<span class='line-number'>25</span>
+<span class='line-number'>26</span>
+<span class='line-number'>27</span>
+<span class='line-number'>28</span>
+<span class='line-number'>29</span>
+<span class='line-number'>30</span>
+<span class='line-number'>31</span>
+<span class='line-number'>32</span>
+<span class='line-number'>33</span>
+<span class='line-number'>34</span>
+<span class='line-number'>35</span>
+<span class='line-number'>36</span>
+<span class='line-number'>37</span>
+<span class='line-number'>38</span>
+<span class='line-number'>39</span>
+<span class='line-number'>40</span>
+<span class='line-number'>41</span>
+<span class='line-number'>42</span>
+<span class='line-number'>43</span>
+<span class='line-number'>44</span>
+<span class='line-number'>45</span>
+<span class='line-number'>46</span>
+<span class='line-number'>47</span>
+<span class='line-number'>48</span>
+<span class='line-number'>49</span>
+<span class='line-number'>50</span>
+<span class='line-number'>51</span>
+<span class='line-number'>52</span>
+<span class='line-number'>53</span>
+<span class='line-number'>54</span>
+<span class='line-number'>55</span>
+<span class='line-number'>56</span>
+<span class='line-number'>57</span>
+<span class='line-number'>58</span>
+<span class='line-number'>59</span>
+<span class='line-number'>60</span>
+<span class='line-number'>61</span>
+<span class='line-number'>62</span>
+<span class='line-number'>63</span>
+<span class='line-number'>64</span>
+<span class='line-number'>65</span>
+<span class='line-number'>66</span>
+<span class='line-number'>67</span>
+<span class='line-number'>68</span>
+<span class='line-number'>69</span>
+<span class='line-number'>70</span>
+<span class='line-number'>71</span>
+<span class='line-number'>72</span>
+<span class='line-number'>73</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>  <span class="cm">/**</span>
+</span><span class='line'><span class="cm">   * Return all the splits in the specified set of paths</span>
+</span><span class='line'><span class="cm">   */</span>
+</span><span class='line'>  <span class="kd">private</span> <span class="kt">void</span> <span class="nf">getMoreSplits</span><span class="o">(</span><span class="n">JobConf</span> <span class="n">job</span><span class="o">,</span> <span class="n">Path</span><span class="o">[]</span> <span class="n">paths</span><span class="o">,</span>
+</span><span class='line'>                             <span class="kt">long</span> <span class="n">maxSize</span><span class="o">,</span> <span class="kt">long</span> <span class="n">minSizeNode</span><span class="o">,</span> <span class="kt">long</span> <span class="n">minSizeRack</span><span class="o">,</span>
+</span><span class='line'>                             <span class="n">List</span><span class="o">&lt;</span><span class="n">CombineFileSplit</span><span class="o">&gt;</span> <span class="n">splits</span><span class="o">)</span>
+</span><span class='line'>    <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// all blocks for all the files in input set</span>
+</span><span class='line'>    <span class="n">OneFileInfo</span><span class="o">[]</span> <span class="n">files</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// mapping from a rack name to the list of blocks it has</span>
+</span><span class='line'>    <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;</span> <span class="n">rackToBlocks</span> <span class="o">=</span>
+</span><span class='line'>                              <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// mapping from a block to the nodes on which it has replicas</span>
+</span><span class='line'>    <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">,</span> <span class="n">String</span><span class="o">[]&gt;</span> <span class="n">blockToNodes</span> <span class="o">=</span>
+</span><span class='line'>                              <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">,</span> <span class="n">String</span><span class="o">[]&gt;();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// mapping from a node to the list of blocks that it contains</span>
+</span><span class='line'>    <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;</span> <span class="n">nodeToBlocks</span> <span class="o">=</span>
+</span><span class='line'>                              <span class="k">new</span> <span class="n">HashMap</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;();</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="c1">// process all nodes and create splits that are local</span>
+</span><span class='line'>    <span class="c1">// to a node. </span>
+</span><span class='line'>    <span class="k">for</span> <span class="o">(</span><span class="n">Iterator</span><span class="o">&lt;</span><span class="n">Map</span><span class="o">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span>
+</span><span class='line'>         <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;&gt;</span> <span class="n">iter</span> <span class="o">=</span> <span class="n">nodeToBlocks</span><span class="o">.</span><span class="na">entrySet</span><span class="o">().</span><span class="na">iterator</span><span class="o">();</span>
+</span><span class='line'>         <span class="n">iter</span><span class="o">.</span><span class="na">hasNext</span><span class="o">();)</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="n">Map</span><span class="o">.</span><span class="na">Entry</span><span class="o">&lt;</span><span class="n">String</span><span class="o">,</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;&gt;</span> <span class="n">one</span> <span class="o">=</span> <span class="n">iter</span><span class="o">.</span><span class="na">next</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">nodes</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">one</span><span class="o">.</span><span class="na">getKey</span><span class="o">());</span>
+</span><span class='line'>      <span class="n">List</span><span class="o">&lt;</span><span class="n">OneBlockInfo</span><span class="o">&gt;</span> <span class="n">blocksInNode</span> <span class="o">=</span> <span class="n">one</span><span class="o">.</span><span class="na">getValue</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>      <span class="c1">// for each block, copy it into validBlocks. Delete it from </span>
+</span><span class='line'>      <span class="c1">// blockToNodes so that the same block does not appear in </span>
+</span><span class='line'>      <span class="c1">// two different splits.</span>
+</span><span class='line'>      <span class="k">for</span> <span class="o">(</span><span class="n">OneBlockInfo</span> <span class="n">oneblock</span> <span class="o">:</span> <span class="n">blocksInNode</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">blockToNodes</span><span class="o">.</span><span class="na">containsKey</span><span class="o">(</span><span class="n">oneblock</span><span class="o">))</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">validBlocks</span><span class="o">.</span><span class="na">add</span><span class="o">(</span><span class="n">oneblock</span><span class="o">);</span>
+</span><span class='line'>          <span class="n">blockToNodes</span><span class="o">.</span><span class="na">remove</span><span class="o">(</span><span class="n">oneblock</span><span class="o">);</span>
+</span><span class='line'>          <span class="n">curSplitSize</span> <span class="o">+=</span> <span class="n">oneblock</span><span class="o">.</span><span class="na">length</span><span class="o">;</span>
+</span><span class='line'>
+</span><span class='line'>          <span class="c1">// if the accumulated split size exceeds the maximum, then </span>
+</span><span class='line'>          <span class="c1">// create this split.</span>
+</span><span class='line'>          <span class="k">if</span> <span class="o">(</span><span class="n">maxSize</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">curSplitSize</span> <span class="o">&gt;=</span> <span class="n">maxSize</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="c1">// create an input split and add it to the splits array</span>
+</span><span class='line'>            <span class="n">addCreatedSplit</span><span class="o">(</span><span class="n">job</span><span class="o">,</span> <span class="n">splits</span><span class="o">,</span> <span class="n">nodes</span><span class="o">,</span> <span class="n">validBlocks</span><span class="o">);</span>
+</span><span class='line'>            <span class="n">curSplitSize</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+</span><span class='line'>            <span class="n">validBlocks</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
+</span><span class='line'>          <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>      <span class="c1">// if there were any blocks left over and their combined size is</span>
+</span><span class='line'>      <span class="c1">// larger than minSplitNode, then combine them into one split.</span>
+</span><span class='line'>      <span class="c1">// Otherwise add them back to the unprocessed pool. It is likely </span>
+</span><span class='line'>      <span class="c1">// that they will be combined with other blocks from the same rack later on.</span>
+</span><span class='line'>      <span class="k">if</span> <span class="o">(</span><span class="n">minSizeNode</span> <span class="o">!=</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="n">curSplitSize</span> <span class="o">&gt;=</span> <span class="n">minSizeNode</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">// create an input split and add it to the splits array</span>
+</span><span class='line'>        <span class="n">addCreatedSplit</span><span class="o">(</span><span class="n">job</span><span class="o">,</span> <span class="n">splits</span><span class="o">,</span> <span class="n">nodes</span><span class="o">,</span> <span class="n">validBlocks</span><span class="o">);</span>
+</span><span class='line'>      <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+</span><span class='line'>        <span class="k">for</span> <span class="o">(</span><span class="n">OneBlockInfo</span> <span class="n">oneblock</span> <span class="o">:</span> <span class="n">validBlocks</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>          <span class="n">blockToNodes</span><span class="o">.</span><span class="na">put</span><span class="o">(</span><span class="n">oneblock</span><span class="o">,</span> <span class="n">oneblock</span><span class="o">.</span><span class="na">hosts</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>      <span class="o">}</span>
+</span><span class='line'>      <span class="n">validBlocks</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">nodes</span><span class="o">.</span><span class="na">clear</span><span class="o">();</span>
+</span><span class='line'>      <span class="n">curSplitSize</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h3>How about read?</h3>
+
+<p>After the discussion above, we know how MapReduce program keep locaility when composing <code>Split</code> with blocks. We are very happy with the sorted <code>perferedLocation</code>, and send it back to partitions on Spark. The next step is Spark framework launchs executors on workers according to the <code>perferedLocation</code>, say, h4 WRT the example above. The launched executor on h4 read these blocks in the split now. But, how does h4 know which nodes to fetch each block? Remeber that each block has 3 replicas!</p>
+
+<p>Begining from <code>RecordReader</code> we can reveal the process of reading. Let&rsquo;s take our <code>BatchFileRecordReader</code> as an example.</p>
+
+<figure class='code'><figcaption><span>Constructer of BatchFileRecoderReader - BatchFileRecorderReader.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="kd">public</span> <span class="nf">BatchFileRecordReader</span><span class="o">(</span>
+</span><span class='line'>            <span class="n">CombineFileSplit</span> <span class="n">split</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">Configuration</span> <span class="n">conf</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">Reporter</span> <span class="n">reporter</span><span class="o">,</span>
+</span><span class='line'>            <span class="n">Integer</span> <span class="n">index</span><span class="o">)</span>
+</span><span class='line'>            <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">path</span> <span class="o">=</span> <span class="n">split</span><span class="o">.</span><span class="na">getPath</span><span class="o">(</span><span class="n">index</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">startOffset</span> <span class="o">=</span> <span class="n">split</span><span class="o">.</span><span class="na">getOffset</span><span class="o">(</span><span class="n">index</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">pos</span> <span class="o">=</span> <span class="n">startOffset</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">end</span> <span class="o">=</span> <span class="n">startOffset</span> <span class="o">+</span> <span class="n">split</span><span class="o">.</span><span class="na">getLength</span><span class="o">(</span><span class="n">index</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">FileSystem</span> <span class="n">fs</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="na">getFileSystem</span><span class="o">(</span><span class="n">conf</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">fileIn</span> <span class="o">=</span> <span class="n">fs</span><span class="o">.</span><span class="na">open</span><span class="o">(</span><span class="n">path</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">fileIn</span><span class="o">.</span><span class="na">seek</span><span class="o">(</span><span class="n">startOffset</span><span class="o">);</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">totalMemory</span> <span class="o">=</span> <span class="n">Runtime</span><span class="o">.</span><span class="na">getRuntime</span><span class="o">().</span><span class="na">totalMemory</span><span class="o">();</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>In the code above, we get <code>path</code> from <code>split</code>, which represents the current file path (Note! It is not the block path.). Then we can get a <code>fileIn</code> which is actually a <code>FSDataInputStream</code>. We then <code>seek</code> it to the <code>startOffset</code> of our block. Wait for a second, we do not use <code>perferedLocation</code> in <code>split</code> at all! It is strange, we took lots of efforts just now, but it is not used here.</p>
+
+<p>We should remember here that the <code>split</code> is just used for providing a computing place for these set of blocks. Only so much. Reading is controlled by other code. Let&rsquo;s go into the <code>FSDataInputStream</code>. However, there is really nothing, just some useless-like code as below:</p>
+
+<figure class='code'><figcaption><span>FSDataInputStream.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+<span class='line-number'>16</span>
+<span class='line-number'>17</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'><span class="kd">public</span> <span class="kd">class</span> <span class="nc">FSDataInputStream</span> <span class="kd">extends</span> <span class="n">DataInputStream</span>
+</span><span class='line'>    <span class="kd">implements</span> <span class="n">Seekable</span><span class="o">,</span> <span class="n">PositionedReadable</span><span class="o">,</span> <span class="n">Closeable</span> <span class="o">{</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="nf">FSDataInputStream</span><span class="o">(</span><span class="n">InputStream</span> <span class="n">in</span><span class="o">)</span>
+</span><span class='line'>        <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="kd">super</span><span class="o">(</span><span class="n">in</span><span class="o">);</span>
+</span><span class='line'>        <span class="k">if</span><span class="o">(</span> <span class="o">!(</span><span class="n">in</span> <span class="k">instanceof</span> <span class="n">Seekable</span><span class="o">)</span> <span class="o">||</span> <span class="o">!(</span><span class="n">in</span> <span class="k">instanceof</span> <span class="n">PositionedReadable</span><span class="o">)</span> <span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="k">throw</span> <span class="k">new</span> <span class="nf">IllegalArgumentException</span><span class="o">(</span>
+</span><span class='line'>            <span class="s">&quot;In is not an instance of Seekable or PositionedReadable&quot;</span><span class="o">);</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>
+</span><span class='line'>    <span class="kd">public</span> <span class="kd">synchronized</span> <span class="kt">void</span> <span class="nf">seek</span><span class="o">(</span><span class="kt">long</span> <span class="n">desired</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="o">((</span><span class="n">Seekable</span><span class="o">)</span><span class="n">in</span><span class="o">).</span><span class="na">seek</span><span class="o">(</span><span class="n">desired</span><span class="o">);</span>
+</span><span class='line'>    <span class="o">}</span>
+</span><span class='line'>    <span class="o">...</span>
+</span><span class='line'><span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>OK, let&rsquo;s force from another way. Note that <code>fileIn</code> is return by calling <code>fs.open()</code>. <code>fs</code> here is usually <code>DistributedFileSystem</code>. Then we find that <code>DistributedFileSystem</code> just wraps a <code>DFSInputStream</code> to <code>FSDataInputStream</code>. The former is implemented in <code>DFSClient</code>. Our expected function in <code>DFSInputStream</code> is <code>blockSeekTo()</code>, which is in charge of finding an appropriate block given offset. Then it will find the best DataNode, and read data from it.</p>
+
+<figure class='code'><figcaption><span>Find an appropriate block and select a DataNode  - DFSClient.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+<span class='line-number'>14</span>
+<span class='line-number'>15</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="n">DatanodeInfo</span> <span class="n">chosenNode</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+</span><span class='line'>    <span class="kt">int</span> <span class="n">refetchToken</span> <span class="o">=</span> <span class="mi">1</span><span class="o">;</span> <span class="c1">// only need to get a new access token once</span>
+</span><span class='line'>    <span class="k">while</span> <span class="o">(</span><span class="kc">true</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>        <span class="c1">//</span>
+</span><span class='line'>        <span class="c1">// Compute desired block</span>
+</span><span class='line'>        <span class="c1">//</span>
+</span><span class='line'>        <span class="n">LocatedBlock</span> <span class="n">targetBlock</span> <span class="o">=</span> <span class="n">getBlockAt</span><span class="o">(</span><span class="n">target</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'>        <span class="k">assert</span> <span class="o">(</span><span class="n">target</span><span class="o">==</span><span class="k">this</span><span class="o">.</span><span class="na">pos</span><span class="o">)</span> <span class="o">:</span> <span class="s">&quot;Wrong postion &quot;</span> <span class="o">+</span> <span class="n">pos</span> <span class="o">+</span> <span class="s">&quot; expect &quot;</span> <span class="o">+</span> <span class="n">target</span><span class="o">;</span>
+</span><span class='line'>        <span class="kt">long</span> <span class="n">offsetIntoBlock</span> <span class="o">=</span> <span class="n">target</span> <span class="o">-</span> <span class="n">targetBlock</span><span class="o">.</span><span class="na">getStartOffset</span><span class="o">();</span>
+</span><span class='line'>
+</span><span class='line'>        <span class="n">DNAddrPair</span> <span class="n">retval</span> <span class="o">=</span> <span class="n">chooseDataNode</span><span class="o">(</span><span class="n">targetBlock</span><span class="o">);</span>
+</span><span class='line'>        <span class="n">chosenNode</span> <span class="o">=</span> <span class="n">retval</span><span class="o">.</span><span class="na">info</span><span class="o">;</span>
+</span><span class='line'>        <span class="n">InetSocketAddress</span> <span class="n">targetAddr</span> <span class="o">=</span> <span class="n">retval</span><span class="o">.</span><span class="na">addr</span><span class="o">;</span>
+</span><span class='line'>        <span class="o">...</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>The most important function here is <code>chooseDataNode()</code>. It is very simple, just select the first DataNode in its DataNode list. If the first one is unreachable, it will try to connect to the second one, and so on. The comments in <code>bestNode()</code> function mentioned that DataNode list has already sorted in the priority order. It is strange that when it is sorted?</p>
+
+<p>Indeed, the block priority order is set when the file is open. See <code>openInfo()</code>, it calls <code>callGetBlockLocations()</code> to set the order. The latter query information from <code>NameNode</code>, in <code>getBlockLocations()</code>:</p>
+
+<figure class='code'><figcaption><span>Get block locations and sorted in the priority order  - FSNamesystem.java</span></figcaption>
+<div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+<span class='line-number'>12</span>
+<span class='line-number'>13</span>
+</pre></td><td class='code'><pre><code class='java'><span class='line'>    <span class="n">LocatedBlocks</span> <span class="nf">getBlockLocations</span><span class="o">(</span><span class="n">String</span> <span class="n">clientMachine</span><span class="o">,</span> <span class="n">String</span> <span class="n">src</span><span class="o">,</span>
+</span><span class='line'>        <span class="kt">long</span> <span class="n">offset</span><span class="o">,</span> <span class="kt">long</span> <span class="n">length</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">IOException</span> <span class="o">{</span>
+</span><span class='line'>        <span class="n">LocatedBlocks</span> <span class="n">blocks</span> <span class="o">=</span> <span class="n">getBlockLocations</span><span class="o">(</span><span class="n">src</span><span class="o">,</span> <span class="n">offset</span><span class="o">,</span> <span class="n">length</span><span class="o">,</span> <span class="kc">true</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+</span><span class='line'>        <span class="k">if</span> <span class="o">(</span><span class="n">blocks</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span> <span class="o">{</span>
+</span><span class='line'>            <span class="c1">//sort the blocks</span>
+</span><span class='line'>            <span class="n">DatanodeDescriptor</span> <span class="n">client</span> <span class="o">=</span> <span class="n">host2DataNodeMap</span><span class="o">.</span><span class="na">getDatanodeByHost</span><span class="o">(</span>
+</span><span class='line'>                <span class="n">clientMachine</span><span class="o">);</span>
+</span><span class='line'>            <span class="k">for</span> <span class="o">(</span><span class="n">LocatedBlock</span> <span class="n">b</span> <span class="o">:</span> <span class="n">blocks</span><span class="o">.</span><span class="na">getLocatedBlocks</span><span class="o">())</span> <span class="o">{</span>
+</span><span class='line'>                <span class="n">clusterMap</span><span class="o">.</span><span class="na">pseudoSortByDistance</span><span class="o">(</span><span class="n">client</span><span class="o">,</span> <span class="n">b</span><span class="o">.</span><span class="na">getLocations</span><span class="o">());</span>
+</span><span class='line'>            <span class="o">}</span>
+</span><span class='line'>        <span class="o">}</span>
+</span><span class='line'>        <span class="k">return</span> <span class="n">blocks</span><span class="o">;</span>
+</span><span class='line'>    <span class="o">}</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can see that it calls <code>pseudoSortByDistance()</code> of <code>clusterMap</code> to sort according to the distance. Untill now, we get the full picture of how HDFS keep locaility for applications.</p>
+
+<h2>New Design and Implementation</h2>
+
+<h2>Interesting test code</h2>
+
+<p>key ideas:</p>
+
+<ul>
+<li><p><del>癫狂小文件：由small files input探索HDFS：功用、功效、策略</del></p></li>
+<li><p><del>Spark的处理方式：partition自己定制，把O(n<sup>2</sup>)的shuffle变成O(n)的？</del></p></li>
+<li><p>Hbase作为替代</p></li>
+<li><p><del>Hdfs combine file与multi file对比，后者为什么被deprecated</del></p></li>
+<li><p><del>Shuffle为什么存在，如何避免，是在底层（HDFS）还是在上层（Spark应用）？</del></p></li>
+<li><p><del>偶尔要为replication容错付出更多代价</del></p></li>
+<li><p><del>Combine file input format，blog上错误多影响广，以及不友好的API，糟糕的示例和注释。</del></p></li>
+<li><p><del>实际场景？学术研究VS线上应用。什么才是LDA输入的最佳实践？Mahout的处理方式？</del></p></li>
+<li><p>文件系统的设计思考，可引入我自己的文件系统。</p></li>
+<li><p>代码的简洁如何保证？同时如何保证性能？隐藏在简洁代码中的黑魔法。</p></li>
+<li><p>Partition，split，以及种种locaility preserve的思考（为什么程序性能这么差？1024个partition从何而来？）</p></li>
+<li><p>Google在bigtable和GFS的思考</p></li>
+<li><p>LineRecorder中的readline函数如何实现越过block向后看？</p></li>
+</ul>
+
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Xusen</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2014-03-11T16:28:47+08:00" pubdate data-updated="true">Mar 11<span>th</span>, 2014</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="//twitter.com/share" class="twitter-share-button" data-url="http://yinxusen.github.io/blog/2014/03/11/crazy-small-files-in-hdfs/" data-via="" data-counturl="http://yinxusen.github.io/blog/2014/03/11/crazy-small-files-in-hdfs/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/blog/2014/01/18/how-to-use-spark-for-ml-algorithms-and-why/" title="Previous Post: How to use Spark for ML algorithms and why ?">&laquo; How to use Spark for ML algorithms and why ?</a>
+      
+      
+        <a class="basic-alignment right" href="/blog/2014/06/17/spark-internals-deploy/" title="Next Post: Spark Internals: Deploy, Scheduling and RDD">Spark Internals: Deploy, Scheduling and RDD &raquo;</a>
+      
+    </p>
+  </footer>
+</article>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>About Me</h1>
+  <p>When machine learning meets system.</p>
+  <p>新浪微博: <a href="http://weibo.com/yinxusen">@yinxusen</a><br/>
+     LinkedIn: <a href="http://www.linkedin.com/in/xusenyin">Xusen Yin</a><br/>
+     Github: <a href="https://github.com/yinxusen">@yinxusen</a>
+  </p>
+</section>
+<section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/blog/2015/02/28/new-course-applied-machine-learning-and-implementation/">New Course: Applied Machine Learning and Implementation</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/08/20/mllib-sparsity/">Mllib Sparsity</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/06/17/spark-internals-deploy/">Spark Internals: Deploy, Scheduling and RDD</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/03/11/crazy-small-files-in-hdfs/">Crazy Small Files in HDFS</a>
+      </li>
+    
+      <li class="post">
+        <a href="/blog/2014/01/18/how-to-use-spark-for-ml-algorithms-and-why/">How to Use Spark for ML Algorithms and Why ?</a>
+      </li>
+    
+  </ul>
+</section>
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2015 - Xusen -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = '//platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
