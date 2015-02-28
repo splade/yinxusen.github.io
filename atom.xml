@@ -4,7 +4,7 @@
   <title><![CDATA[wtf AI ?]]></title>
   <link href="http://yinxusen.github.io/atom.xml" rel="self"/>
   <link href="http://yinxusen.github.io/"/>
-  <updated>2015-02-28T22:09:51+08:00</updated>
+  <updated>2015-02-28T22:32:10+08:00</updated>
   <id>http://yinxusen.github.io/</id>
   <author>
     <name><![CDATA[Xusen]]></name>
@@ -18,7 +18,7 @@
     <link href="http://yinxusen.github.io/blog/2015/02/28/new-course-applied-machine-learning-and-implementation/"/>
     <updated>2015-02-28T00:34:02+08:00</updated>
     <id>http://yinxusen.github.io/blog/2015/02/28/new-course-applied-machine-learning-and-implementation</id>
-    <content type="html"><![CDATA[<p>大家好，2015年四月份会在<a href="www.chinahadoop.cn">小象学院</a>开一门数据分析的课程，名称暂定为《实践机器学习算法详解及工程实现》。中文名很长，我擅自改了个英文名字，Applied Machine Learning and Implementation. 如果喜欢，还请选课，希望AMLI能伴你度过一个而快乐的春天。:)</p>
+    <content type="html"><![CDATA[<p>大家好，2015年四月份会在<a href="http://www.chinahadoop.cn/">小象学院</a>开一门数据分析的课程，名称暂定为《实践机器学习算法详解及工程实现》。中文名很长，我擅自改了个英文名字，Applied Machine Learning and Implementation. 如果喜欢，还请选课，希望AMLI能伴你度过一个而快乐的春天。:)</p>
 
 <!--more-->
 
@@ -37,15 +37,15 @@
 
 <h2>本课程适合哪些人</h2>
 
-<p>这是一门entry-level的课程，如果你已经是资深的数据科学家，也欢迎来看我的课程，同时留下宝贵的意见。这门课程尤其适用于刚接触数据挖掘、机器学习不就的小伙伴们。</p>
+<p>这是一门entry-level的课程，如果你已经是资深的数据科学家，也欢迎来看我的课程，同时留下宝贵的意见。这门课程尤其适用于刚接触数据挖掘、机器学习不久的小伙伴们。</p>
 
 <h2>课程最后期望的收获</h2>
 
-<p>如上所述，我希望在学习本课程之后，学院可以对机器学习有一个明确的认识，了解其重要组成部分。并能够分析和解决一些实际问题。后者尤为重要，数据科学家要避免成为“嘴皮子先生”，要深入数据中，用你的直觉和经验解决问题。</p>
+<p>如上所述，我希望在学习本课程之后，学员可以对机器学习有一个明确的认识，了解其重要组成部分。并能够分析和解决一些实际问题。后者尤为重要，数据科学家要避免成为“嘴皮子先生”，要深入数据中，用你的直觉和经验解决问题。</p>
 
 <h2>我的想法和计划</h2>
 
-<p>本课程为收费课程，但我会尽量让课程大纲和一些代码文档免费开放。你可以持续关注我的Github repo：<a href="https://github.com/yinxusen/AMLI">AMLI</a>，最新内容会随时发布。</p>
+<p>本课程为收费课程，但我会尽量让课程大纲和一些代码文档免费开放。你可以持续关注我的Github repo：<a href="https://github.com/yinxusen/AMLI">AMLI</a>，最新内容会随时发布。大家还可以事先看看我<a href="http://www.chinahadoop.cn/course/41">之前的公开课</a>，避免花了钱不喜欢听。</p>
 ]]></content>
   </entry>
   
